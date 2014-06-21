@@ -207,10 +207,6 @@ int main(int argc, char**argv)
 		goto exit;
 	}
 
-	/* tell user if source file is already floats */
-	if (props.samptype==PSF_SAMP_IEEE_FLOAT)
-		printf("Info: infile is already in floats format.\n");
-
 	/* check if infile uses 8-bit samples*/ 
 	if (props.samptype==PSF_SAMP_8)
 	{
@@ -224,7 +220,7 @@ int main(int argc, char**argv)
 		error++;
 		goto exit;
 	}	
-	props.samptype = PSF_SAMP_IEEE_FLOAT;
+
 	/* check if outfile extension is one we know about */	
 	outformat = psf_getFormatExt(argv[ARG_OUTFILE]);
 	if (outformat == PSF_FMT_UNKNOWN)
@@ -293,7 +289,7 @@ int main(int argc, char**argv)
 		{
 			i++;
 			
-			/* update copy status every 100 frames */
+			/* update copy status after refreshing the buffer every 100 times */
 			if (i%100==0)
 				printf("%ld samples copied...  %ld%\r",totalread,100*totalread/size);
 
