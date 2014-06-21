@@ -185,7 +185,7 @@ int main(int argc, char**argv)
 		return 1;
 	}
 
-	/* we now have a resourse, so we use goto hereafter
+	/* we now have a resource, so we use goto hereafter
 		 on hitting any error */
 	/* get number of frames from infile */
 	size = psf_sndSize(ifd);
