@@ -206,6 +206,10 @@ int main(int argc, char**argv)
 		error++;
 		goto exit;
 	}
+	
+	/* tell user if source file is already floats */
+	if (props.samptype==PSF_SAMP_IEEE_FLOAT)
+		printf("Info: infile is already in floats format.\n");
 
 	/* check if infile uses 8-bit samples*/ 
 	if (props.samptype==PSF_SAMP_8)
@@ -220,6 +224,7 @@ int main(int argc, char**argv)
 		error++;
 		goto exit;
 	}	
+	props.samptype=PSF_SAMP_IEEE_FLOAT; 
 
 	/* check if outfile extension is one we know about */	
 	outformat = psf_getFormatExt(argv[ARG_OUTFILE]);
