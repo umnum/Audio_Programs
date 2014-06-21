@@ -1,4 +1,4 @@
-/* gain.c: change level of soundfile */
+/* sfgain.c: change level of soundfile */
 #include <stdio.h>
 #include <stdlib.h>
 #include <portsf.h>
