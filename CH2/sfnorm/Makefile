@@ -1,4 +1,4 @@
-#makefile for sf2float
+#makefile for sfnorm
 OBJS = sfnorm.o
 POBJS = ../../portsf-master/portsf/ieee80.o ../../portsf-master/portsf/portsf.o 
 EXE = sfnorm 
