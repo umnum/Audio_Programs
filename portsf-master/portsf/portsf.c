@@ -3530,6 +3530,20 @@ int psf_sndInfileProperties(const char *infile, int ifd, const PSF_PROPS *props)
 	return 1;
 }
 
+double maxsamp(float* buf, unsigned long blocksize)
+{
+	double absval, peak = 0.0;
+	unsigned long i;
+
+	for (i=0; i < blocksize; i++)
+	{
+		absval = fabs(buf[i]);
+		if (absval > peak)
+			peak = absval;
+	}
+	return peak;
+}
+
 /* TODO: define a psf_writePeak function; probably to a single nominated channel. 
    This would be needed as soon as write is performed with random over-write activity.
    This is probably something to discourage, however!

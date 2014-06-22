@@ -237,6 +237,8 @@ int psf_speakermask(int sfd);
 psf_channelformat get_speakerlayout(DWORD chmask,DWORD chans);
 /* display soundfile properties. return 0 on error, return 1 for success. */
 psf_sndInfileProperties(const char *infile, int ifd, const PSF_PROPS *props);
+/* return absolute value of a sample buffer */
+double maxsamp(float *buf, unsigned long blocksize);
 #ifdef __cplusplus
 }
 #endif
