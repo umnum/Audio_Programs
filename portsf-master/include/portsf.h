@@ -235,6 +235,8 @@ int psf_sndGetDither(int sfd);
 int psf_speakermask(int sfd);
 /* use the above to find named speaker layout, or generic type such as MC_WAVE_EX */    
 psf_channelformat get_speakerlayout(DWORD chmask,DWORD chans);
+/* display soundfile properties. return 0 on error, return 1 for success. */
+psf_sndInfileProperties(const char *infile, int ifd, const PSF_PROPS *props);
 #ifdef __cplusplus
 }
 #endif

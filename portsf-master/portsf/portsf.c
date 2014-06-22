@@ -3414,6 +3414,122 @@ int psf_speakermask(int sfd)
     return (int) sfdat->fmt.dwChannelMask;
 }
 
+int psf_sndInfileProperties(const char *infile, int ifd, const PSF_PROPS *props)
+{
+	if (ifd<0)
+	{
+		printf("ERROR: unable to access input file.\n");
+		return 0;
+	}
+	if (props==NULL)
+	{
+		printf("ERROR: unable to access input file properties.\n");
+		return 0;
+	}	
+	char* type;
+	char* format;
+	char* chformat;
+	int size;
+
+	size = psf_sndSize(ifd);
+	if (size<0)
+	{
+		printf("ERROR: unable to obtain the size of \"%s\"\n", infile);
+		return 0;
+	}
+	
+	switch(props->samptype)
+	{
+		case(PSF_SAMP_8):
+			type = "8-bit integer";
+			break;
+		case(PSF_SAMP_16):
+			type = "16-bit integer";
+			break;
+		case(PSF_SAMP_24):
+			type = "24-bit integer";
+			break;
+		case(PSF_SAMP_32):
+			type = "32-bit integer";
+			break;
+		case(PSF_SAMP_IEEE_FLOAT):
+			type = "32-bit float";
+			break;
+		default:
+			type = "unknown";
+	}
+	
+	switch(props->format)
+	{
+		case(PSF_STDWAVE):
+			format = "WAV";
+			break;
+		case(PSF_WAVE_EX):
+			format = "WAVFORMATEXTENSIBLE";
+			break;
+		case(PSF_AIFF):
+			format = "AIFF";
+			break;
+		case(PSF_AIFC):
+			format = "AIFC";
+			break;
+		default:
+			format = "unknown";
+	}
+
+	switch(props->chformat)
+	{
+		case(STDWAVE):
+			chformat = "standard wave";
+			break;
+		case(MC_STD):
+			chformat = "standard";
+			break;
+		case(MC_MONO):
+			chformat = "mono";
+			break;
+		case(MC_STEREO):
+			chformat = "stereo";
+			break;
+		case(MC_QUAD):
+			chformat = "quad";
+			break;
+		case(MC_LCRS):
+			chformat = "lcrs";
+			break;
+		case(MC_BFMT):
+			chformat = "bfmt";
+			break;
+		case(MC_DOLBY_5_1):
+			chformat = "dolby 5.1";
+			break;
+		case(MC_WAVE_EX):
+			chformat = "wave format extensible";
+			break;
+		case(MC_SURR_5_0):
+			chformat = "surround sound 5.0";
+			break;
+		case(MC_SURR_7_1):
+			chformat = "surround sound 7.1";
+			break;	
+		default:
+			chformat = "unknown";
+	}
+
+	printf("\n%s properties:\n"
+				 "--------------------------------------\n"
+				 "size:            %d\n" 
+				 "sample rate:     %d\n"
+				 "channels:        %d\n"
+				 "sample type:     %s\n"
+				 "format:          %s\n"
+				 "channel format:  %s\n\n",
+				 infile, size, props->srate, 
+				 props->chans, type, 
+				 format, chformat);	
+	return 1;
+}
+
 /* TODO: define a psf_writePeak function; probably to a single nominated channel. 
    This would be needed as soon as write is performed with random over-write activity.
    This is probably something to discourage, however!
