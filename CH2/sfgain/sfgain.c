@@ -4,7 +4,7 @@
 #include <portsf.h>
 #include <math.h>
 
-enum {ARG_PROGNAME, ARG_INFILE, ARG_OUTFILE, ARG_BUFF, ARG_LIMIT, ARG_N, ARG_AMP, ARG_NARGS};
+enum {ARG_PROGNAME, ARG_INFILE, ARG_OUTFILE, ARG_BUFF, ARG_LIMIT, ARG_N, ARG_DB, ARG_NARGS};
 
 int main(int argc, char**argv)
 {
@@ -14,7 +14,8 @@ int main(int argc, char**argv)
 	int size; 
 	int limit;
 	int N; // copy infile N times
-	float ampfac;
+	float ampfac; 
+	float dbval;
 
 	/* init all resource vals to default states */ 
 	int ifd=-1, ofd=-1;
@@ -28,8 +29,8 @@ int main(int argc, char**argv)
 	if (argc!=ARG_NARGS)
 	{
 		printf("insufficient arguments.\n"
-					 "USAGE:\tsfgain infile outfile buffer limit N ampfac\n"
-					 "ampfac must be > 0\n"); 
+					 "USAGE:\tsfgain infile outfile buffer limit N dBval\n"
+					 "dBval must be <= 0\n"); 
 		return 1;
 	}
 	
@@ -64,19 +65,21 @@ int main(int argc, char**argv)
 		return 1;
 	}
 
-	/* initialize ampfac */
-	ampfac = atof(argv[ARG_AMP]);
-	if (ampfac <= 0.0)
+	/* initialize dBval */
+	dbval = atof(argv[ARG_DB]);
+	if (dbval > 0.0)
 	{
-		printf("ERROR: ampfac must be greater than 0.\n");
+		printf("ERROR: dBval cannot be positive.\n");
 		return 1;
 	}
-	if (ampfac==1.0)
+	if (dbval==0.0)
 	{
-		printf("ERROR: ampfac of 1.0 creates an outfile "
+		printf("ERROR: dBval of 0 creates an outfile "
 					 "identicle to the infile\n");  
 		return 1;
 	}
+	/* convert dB to amps */
+	ampfac = pow(10.0, dbval/20.0);
 
 	/* open infile */ 
 	ifd = psf_sndOpen(argv[ARG_INFILE], &props, 0);
@@ -116,6 +119,7 @@ int main(int argc, char**argv)
 		goto exit;
 	}
 
+	/* display infile properties */
 	if(!psf_sndInfileProperties(argv[ARG_INFILE],ifd,&props))
 	{
 		error++;
@@ -199,6 +203,7 @@ int main(int argc, char**argv)
 
 			totalread+=framesread;
 		
+			/* change sample values by amp factor */
 			for (j=0; j<nFrames; j++)
 				for (i=0; i<props.chans; i++)	
 					buffer[props.chans*j+i] *= ampfac; 
