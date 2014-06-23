@@ -139,14 +139,16 @@ int main(int argc, char**argv)
 	{
 		/* scan file and rewind */
 		framesread = psf_sndReadFloatFrames(ifd, buffer, nFrames); 
+		blocksize = framesread*props.chans;
 		while (framesread > 0)
 		{
-			blocksize = framesread*props.chans;
+			blocksize = (unsigned long) framesread*props.chans;
 			thispeak = maxsamp(buffer, blocksize);
 			if (thispeak > inpeak)
 				inpeak = thispeak;
 			framesread = psf_sndReadFloatFrames(ifd, buffer, nFrames);
 		}
+
 		/* rewind */
 		if(psf_sndSeek(ifd,0,PSF_SEEK_SET))
 		{
@@ -161,7 +163,6 @@ int main(int argc, char**argv)
 		goto exit;
 	}
 
-	// TODO use scale factor at some point
 	scalefac = (float)ampfac/inpeak;
 
 	/* create outfile */
@@ -196,7 +197,7 @@ int main(int argc, char**argv)
 		/* normalize soundfile */ 	
 		for (j=0; j<nFrames; j++)
 			for (i=0; i<props.chans; i++)	
-				buffer[props.chans*j+i] *= ampfac; 
+				buffer[props.chans*j+i] *= scalefac; 
 
 		if(psf_sndWriteFloatFrames(ofd,buffer,nFrames)<0)
 		{
