@@ -1,10 +1,11 @@
 /* sfgain.c: change level of soundfile */
+/* USAGE: sfgain infile outfile buffer limit N [dBval | -a ampfac] */ 
 #include <stdio.h>
 #include <stdlib.h>
 #include <portsf.h>
 #include <math.h>
 
-enum {ARG_PROGNAME, ARG_INFILE, ARG_OUTFILE, ARG_BUFF, ARG_LIMIT, ARG_N, ARG_DB, ARG_NARGS};
+enum {ARG_PROGNAME, ARG_INFILE, ARG_OUTFILE, ARG_BUFF, ARG_LIMIT, ARG_N, ARG_DBorOP, ARG_NOPSorAMP, ARG_OPS};
 
 int main(int argc, char**argv)
 {
@@ -24,14 +25,34 @@ int main(int argc, char**argv)
 	PSF_CHPEAK* peaks = NULL;
 	float* buffer = NULL;
 
+	/* init flags for command-line options */ 
+	int isamp=0; // default scale factor is in dBs 
+
 	printf ("SFGAIN: change level of soundfile.\n");
 
-	if (argc!=ARG_NARGS)
+	if ((argc<ARG_NOPSorAMP)||(argc>ARG_OPS))
 	{
 		printf("insufficient arguments.\n"
-					 "USAGE:\tsfgain infile outfile buffer limit N dBval\n"
-					 "dBval must be <= 0\n"); 
+					 "USAGE:\tsfgain infile outfile buffer limit N [dBval | -a ampfac]\n"
+					 "dBval must be <= 0 or ampfac must be > 0\n"); 
 		return 1;
+	}
+
+	/* check for command-line options */
+	if (argc==ARG_OPS)
+	{
+		if (argv[ARG_DBorOP][0]=='-')	
+		{
+			if (argv[ARG_DBorOP][1]=='a')
+				isamp=1;
+			else
+			{
+				printf("ERROR: %s is not a valid command-line option.\n"
+							 "USAGE:\tsfgain infile outfile buffer limit N [dBval | -a ampfac]\n"
+							 "dBval must be <= 0 or ampfac must be > 0\n", argv[ARG_DBorOP]); 
+				return 1;
+			}
+		}
 	}
 	
 	/* startup portsf */
@@ -65,21 +86,39 @@ int main(int argc, char**argv)
 		return 1;
 	}
 
-	/* initialize dBval */
-	dbval = atof(argv[ARG_DB]);
-	if (dbval > 0.0)
+	/* initialize dBval or ampfac */
+	if (isamp)
+	{	
+		ampfac = atof(argv[ARG_NOPSorAMP]);
+		if (ampfac <= 0.0)
+		{
+			printf("ERROR: ampfac must be positive.\n");
+			return 1;
+		}		
+		if (ampfac == 1.0)
+		{
+			printf("ERROR: an ampfac of 1 creates an outfile "
+						 " identicle to the infile\n");
+			return 1;
+		}
+	}	
+	else
 	{
-		printf("ERROR: dBval cannot be positive.\n");
-		return 1;
+		dbval = atof(argv[ARG_DBorOP]);
+		if (dbval > 0.0)
+		{
+			printf("ERROR: dBval cannot be positive.\n");
+			return 1;
+		}
+		if (dbval==0.0)
+		{
+			printf("ERROR: dBval of 0 creates an outfile "
+						 "identicle to the infile\n");  
+			return 1;
+		}
+		/* convert dB to amps */
+		ampfac = pow(10.0, dbval/20.0);
 	}
-	if (dbval==0.0)
-	{
-		printf("ERROR: dBval of 0 creates an outfile "
-					 "identicle to the infile\n");  
-		return 1;
-	}
-	/* convert dB to amps */
-	ampfac = pow(10.0, dbval/20.0);
 
 	/* open infile */ 
 	ifd = psf_sndOpen(argv[ARG_INFILE], &props, 0);
