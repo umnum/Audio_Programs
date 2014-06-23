@@ -24,7 +24,7 @@ int main(int argc, char**argv)
 	PSF_CHPEAK* peaks = NULL;
 	float* buffer = NULL;
 
-	printf ("SFGAIN: change level of soundfile.\n");
+	printf ("SFNORM: normalize soundfile.\n");
 
 	if (argc!=ARG_NARGS)
 	{
