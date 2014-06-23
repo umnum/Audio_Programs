@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <portsf.h>
 #include <math.h>
+#define max(x,y) ((x) > (y) ? (x) : (y))
 
 enum {ARG_PROGNAME, ARG_INFILE, ARG_OUTFILE, ARG_BUFF, ARG_DB, ARG_NARGS};
 
@@ -131,8 +132,7 @@ int main(int argc, char**argv)
 		long i;
 		for (i=0; i<props.chans; i++)
 		{
-			if (peaks[i].val > inpeak)
-				inpeak = peaks[i].val;
+			inpeak = max(peaks[i].val,inpeak);
 		}
 	}
 	else
@@ -144,8 +144,7 @@ int main(int argc, char**argv)
 		{
 			blocksize = (unsigned long) framesread*props.chans;
 			thispeak = maxsamp(buffer, blocksize);
-			if (thispeak > inpeak)
-				inpeak = thispeak;
+			inpeak = max(thispeak,inpeak);
 			framesread = psf_sndReadFloatFrames(ifd, buffer, nFrames);
 		}
 
