@@ -71,6 +71,12 @@ int main(int argc, char**argv)
 		printf("ERROR: ampfac must be greater than 0.\n");
 		return 1;
 	}
+	if (ampfac==1.0)
+	{
+		printf("ERROR: ampfac of 1.0 creates an outfile "
+					 "identicle to the infile\n");  
+		return 1;
+	}
 
 	/* open infile */ 
 	ifd = psf_sndOpen(argv[ARG_INFILE], &props, 0);
