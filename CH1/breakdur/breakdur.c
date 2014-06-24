@@ -1,4 +1,6 @@
-/* breakdur infile.txt */
+/* extract breakpoints from infile.txt,
+   display the duration and maximum value of breakpoint file */ 
+/* usage: breakdur infile.txt */
 #include <stdio.h>
 #include <stdlib.h>
 #include "get_breakpoints.c"
