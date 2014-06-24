@@ -1,11 +1,12 @@
-/* ADEnvelope attackDuration decayDuration peakLevel points infile.txt*/
+/* generates breakpoints for a simple attack decay envelope */
+/* Usage: ADEnvelope attackDuration decayDuration peakLevel points infile.txt */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 
 int main(int argc, char* argv[])
 {
-	FILE* fp;
+	FILE* fp = NULL;
 	float verysmall = 1.0e-4; 
 	float step;
 	float duration;
@@ -14,6 +15,7 @@ int main(int argc, char* argv[])
 	float value;
 	float fac;
 	int err;
+	int error=0;
 	int i;
 
 	if (argc!=6)
@@ -48,23 +50,27 @@ int main(int argc, char* argv[])
 	}
 		
 	fp = fopen(argv[5],"w");
-/*
-	if (fp==NULL);
+
+	if (fp==NULL)
 	{
 		fprintf(stderr,"ERROR: unable to open \"%s\"\n", argv[5]);
-		return 1;
-	} */
+		error++;
+		goto exit;
+	} 
+
 	duration = attackDuration + decayDuration;
 	for (i=0, step=0.0; step<attackDuration; i++, step+=duration/points);
 	if (i<2)
 	{
 		fprintf(stderr,"ERROR: attack duration is not long enough.\n");
-		return 1;
+		error++;
+		goto exit;
 	}
 	if ((points-i)<2)
 	{
 		fprintf(stderr,"ERROR: delay duration is not long enough.\n");
-		return 1;
+		error++;
+		goto exit;
 	}
 
 	begin = verysmall;
@@ -76,7 +82,8 @@ int main(int argc, char* argv[])
 		if (err<0)
 		{
 			fprintf(stderr,"ERROR: unable to write to \"%s\"\n",argv[5]);	
-			return 1;
+			error++;
+			goto exit;
 		}
 		begin*=fac;
 	}	
@@ -89,10 +96,12 @@ int main(int argc, char* argv[])
 		if (err<0)
 		{
 			fprintf(stderr,"ERROR: unable to write to \"%s\"\n", argv[5]);
-			return 1;
+			error++;
+			goto exit;
 		}
 		begin*=fac;
 	}	
+	exit:
 	fclose(fp);	
-	return 0;
+	return error;
 }
