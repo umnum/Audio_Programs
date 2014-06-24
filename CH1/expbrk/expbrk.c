@@ -1,5 +1,5 @@
 /* generate exponential attack or decay breakpoint data */
-/* usage: expbrk duration npoints startval endval */
+/* usage: expbrk duration npoints startval endval > outfile.txt */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,7 +17,7 @@ int main(int argc, char**argv)
 	/* check user input */
 	if (argc!=5)
 	{
-		fprintf(stderr,"USAGE: expbrk duration npoints startval endval\n");
+		fprintf(stderr,"USAGE: expbrk duration npoints startval endval > outfile.txt\n");
 		return 1;		
 	}	
 	dur = atof(argv[1]);
