@@ -1,3 +1,4 @@
+/* maxpoint function returns the breakpoint with the largest value */
 BREAKPOINT maxpoint(const BREAKPOINT *points, long npoints)
 {
 	int i;
