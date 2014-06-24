@@ -5,7 +5,7 @@
 #include <portsf.h>
 #include <math.h>
 
-enum {ARG_PROGNAME, ARG_INFILE, ARG_OUTFILE, ARG_BUFF, ARG_LIMIT, ARG_N, ARG_DBorOP, ARG_NOPSorAMP, ARG_OPS};
+enum {ARG_PROGNAME, ARG_INFILE, ARG_OUTFILE, ARG_BUFF, ARG_LIMIT, ARG_N, ARG_DB, ARG_OP=6, ARG_NOPS, ARG_AMP=7, ARG_OPS};
 
 int main(int argc, char**argv)
 {
@@ -30,7 +30,7 @@ int main(int argc, char**argv)
 
 	printf ("SFGAIN: change level of soundfile.\n");
 
-	if ((argc<ARG_NOPSorAMP)||(argc>ARG_OPS))
+	if ((argc<ARG_NOPS)||(argc>ARG_OPS))
 	{
 		printf("insufficient arguments.\n"
 					 "USAGE:\tsfgain infile outfile buffer limit N [dBval | -a ampfac]\n"
@@ -41,15 +41,15 @@ int main(int argc, char**argv)
 	/* check for command-line options */
 	if (argc==ARG_OPS)
 	{
-		if (argv[ARG_DBorOP][0]=='-')	
+		if (argv[ARG_OP][0]=='-')	
 		{
-			if (argv[ARG_DBorOP][1]=='a')
+			if (argv[ARG_OP][1]=='a')
 				isamp=1;
 			else
 			{
 				printf("ERROR: %s is not a valid command-line option.\n"
 							 "USAGE:\tsfgain infile outfile buffer limit N [dBval | -a ampfac]\n"
-							 "dBval must be <= 0 or ampfac must be > 0\n", argv[ARG_DBorOP]); 
+							 "dBval must be <= 0 or ampfac must be > 0\n", argv[ARG_OP]); 
 				return 1;
 			}
 		}
@@ -89,7 +89,7 @@ int main(int argc, char**argv)
 	/* initialize dBval or ampfac */
 	if (isamp)
 	{	
-		ampfac = atof(argv[ARG_NOPSorAMP]);
+		ampfac = atof(argv[ARG_AMP]);
 		if (ampfac <= 0.0)
 		{
 			printf("ERROR: ampfac must be positive.\n");
@@ -104,7 +104,7 @@ int main(int argc, char**argv)
 	}	
 	else
 	{
-		dbval = atof(argv[ARG_DBorOP]);
+		dbval = atof(argv[ARG_DB]);
 		if (dbval > 0.0)
 		{
 			printf("ERROR: dBval cannot be positive.\n");
