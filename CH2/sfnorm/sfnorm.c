@@ -82,7 +82,7 @@ int main(int argc, char**argv)
 	/* check if infile uses 8-bit samples*/ 
 	if (props.samptype==PSF_SAMP_8)
 	{
-		printf("ERROR: sf2float does not support 8-bit format.\n");
+		printf("ERROR: sfnorm does not support 8-bit format.\n");
 		error++;
 		goto exit;
 	}
