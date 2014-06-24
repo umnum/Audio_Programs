@@ -1,3 +1,4 @@
+/* get_breakpoints function gathers breakpoint data from a file */
 #include "breakpoint.c"
 #define NPOINTS 64
 BREAKPOINT *get_breakpoints(FILE *fp, long *psize)
@@ -22,7 +23,7 @@ BREAKPOINT *get_breakpoints(FILE *fp, long *psize)
 	{
 		got = sscanf(line,"%lf%lf",&points[npoints].time,&points[npoints].value); 
 		if (got<0)
-			continue;
+			continue; // skip initial white space
 		if (got==0)
 		{
 			printf("Line %ld has non-numeric data.\n",npoints+1);
