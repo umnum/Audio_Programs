@@ -1,4 +1,5 @@
-/* expbrk duration npoints startval endval */
+/* generate exponential attack or decay breakpoint data */
+/* usage: expbrk duration npoints startval endval */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,11 +7,14 @@
 
 int main(int argc, char**argv)
 {
-	int i, npoints;
-	double startval, endval;
-	double dur, start, end, step, thisstep;
+	int i, npoints; // number of breakpoints
+	double startval, endval; // start and end values of attack/decay
+	double dur, // duration of attack/decay 
+	       start, end, step, thisstep;
 	double fac, valrange, offset;
 	const double verysmall = 1.0e-4;
+
+	/* check user input */
 	if (argc!=5)
 	{
 		fprintf(stderr,"USAGE: expbrk duration npoints startval endval\n");
