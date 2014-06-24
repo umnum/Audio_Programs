@@ -1,3 +1,5 @@
+/* generate breakpoint data using an exponential decay envelope */
+/* usage: expdecay dur T steps > outfile */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -5,13 +7,14 @@
 
 int main(int argc, char **argv)
 {
-	int i,nsteps;
-	double step, x, a, k, T;
-	double dur;
+	int i,nsteps; // number of breakpoints 
+	double step, x, a, k, 
+	       T; // decay constant, affects the rate of decay
+	double dur; // duration of decay
 
 	if(argc != ARG_NARGS)
 	{
-		printf("usage: expdecay dur T steps\n");
+		printf("usage: expdecay dur T steps > outfile.txt\n");
 		return 1;
 	}
 
@@ -21,7 +24,7 @@ int main(int argc, char **argv)
 
 	k = dur/nsteps;
 	a = exp(-k/T);
-	x = 1.0;	
+	x = 1.0; // decay value starts at one, decays to zero	
 
 	step = 0.0;
 	for (i=0; i<nsteps; i++)
