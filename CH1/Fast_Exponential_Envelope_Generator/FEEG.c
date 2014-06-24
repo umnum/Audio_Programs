@@ -1,7 +1,9 @@
-/* FEEG points levelBegin levelEnd releaseTime */
+/* a simple exponential envelope generator, outputs breakpoint values */
+/* Usage: FEEG points levelBegin levelEnd releaseTime > outfile.txt */
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+
 const float sampleRate = 44100;
 float coeff;
 float currentLevel;
@@ -15,7 +17,7 @@ int main(int argc, char**argv)
 	if (argc!=5)
 	{
 		fprintf(stderr,"ERROR: insufficient arguments\n");
-		fprintf(stderr,"USAGE: FEEG points levelBegin levelEnd releaseTime\n");
+		fprintf(stderr,"USAGE: FEEG points levelBegin levelEnd releaseTime > outfile.txt\n");
 		return 1;
 	}
 	int points = atoi(argv[1]);
