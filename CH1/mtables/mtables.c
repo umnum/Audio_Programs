@@ -1,3 +1,5 @@
+/* generate a multiplication table with an optional row and column table
+   if append option isn't set, mtable will overwrite output.txt */
 /* mtable [-r] [-c] [-a] nFrom nTo [output.txt] */ 
 #include <stdio.h>
 #include <stdlib.h>
