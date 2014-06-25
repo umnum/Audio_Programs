@@ -161,6 +161,13 @@ typedef struct psf_props
 	/* probably add more stuff...esp for full WAVE-EX support */
 } PSF_PROPS;
 
+/* a structure representing the amplitude scaling factors for the left and right output channels */
+typedef struct panpos
+{
+	double left;
+	double right;
+} PANPOS;
+
 
 /*************** PUBLIC FUNCS */
 
@@ -239,6 +246,8 @@ psf_channelformat get_speakerlayout(DWORD chmask,DWORD chans);
 psf_sndInfileProperties(const char *infile, int ifd, const PSF_PROPS *props);
 /* return absolute value of a sample buffer */
 double maxsamp(float *buf, unsigned long blocksize);
+/* panning function returns a PANPOS object */
+PANPOS simplepan(double position);
 #ifdef __cplusplus
 }
 #endif

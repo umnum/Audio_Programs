@@ -3544,6 +3544,16 @@ double maxsamp(float* buf, unsigned long blocksize)
 	return peak;
 }
 
+PANPOS simplepan(double position)
+{
+	PANPOS pos;
+
+	position *= 0.5;
+	pos.left = position - 0.5;
+	pos.right = position + 0.5;
+	return pos;
+}
+
 /* TODO: define a psf_writePeak function; probably to a single nominated channel. 
    This would be needed as soon as write is performed with random over-write activity.
    This is probably something to discourage, however!
