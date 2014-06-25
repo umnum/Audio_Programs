@@ -102,15 +102,13 @@ int main(int argc, char**argv)
 	thispos = simplepan(panpos);
 	while ((framesread = psf_sndReadFloatFrames(ifd,inbuffer,NFRAMES)) > 0)
 	{
-		printf ("framesread = %d\n",framesread);
 		int i, out_i; 
 		for (i=0, out_i=0; i < framesread; i++)
 		{
 			outbuffer[out_i++] = (float)(inbuffer[i]*thispos.left);	
 			outbuffer[out_i++] = (float)(inbuffer[i]*thispos.right);
 		}
-		// TODO fix: always posts error after successfully writing to outfile
-		if (psf_sndWriteFloatFrames(ofd,outbuffer,NFRAMES) != framesread)
+		if (psf_sndWriteFloatFrames(ofd,outbuffer,framesread) != framesread)
 		{
 			printf("Error writing to outfile.\n");
 			error++;
