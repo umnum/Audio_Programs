@@ -3,8 +3,7 @@
 /* usage: breakdur infile.txt */
 #include <stdio.h>
 #include <stdlib.h>
-#include "get_breakpoints.c"
-#include "maxpoint.c"
+#include <breakpoints.h>
 
 int main(int argc, char *argv[])
 {
