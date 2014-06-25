@@ -3,7 +3,7 @@ OBJS = sf2float.o
 POBJS = ../../portsf-master/portsf/ieee80.o ../../portsf-master/portsf/portsf.o 
 EXE = sf2float
 CC = gcc
-CFLAGS = -c -L ../../portsf-master/include/ 
+CFLAGS = -c 
 LFLAGS = -lz $(POBJS) -lm
 
 build:	$(OBJS)
