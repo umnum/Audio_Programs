@@ -1,9 +1,9 @@
 #makefile for sf2float
-OBJS = sf2float.o
+OBJS = sf2float.o 
 POBJS = ../../portsf-master/portsf/ieee80.o ../../portsf-master/portsf/portsf.o 
 EXE = sf2float
 CC = gcc
-CFLAGS = -c -I ../../portsf-master/portsf/ -L ../../portsf-master/include/ 
+CFLAGS = -c -L ../../portsf-master/include/ 
 LFLAGS = -lz $(POBJS) -lm
 
 build:	$(OBJS)

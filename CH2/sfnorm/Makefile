@@ -3,7 +3,7 @@ OBJS = sfnorm.o
 POBJS = ../../portsf-master/portsf/ieee80.o ../../portsf-master/portsf/portsf.o 
 EXE = sfnorm 
 CC = gcc
-CFLAGS = -c -I ../../portsf-master/portsf/ -L ../../portsf-master/include/ 
+CFLAGS = -c -L ../../portsf-master/include/ 
 LFLAGS = -lz $(POBJS) -lm
 
 build:	$(OBJS)
