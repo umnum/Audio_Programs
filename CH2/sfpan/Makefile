@@ -2,10 +2,11 @@
 
 OBJS = sfpan.o
 POBJS = ../../portsf-master/portsf/ieee80.o ../../portsf-master/portsf/portsf.o 
+BOBJS = ../../breakpoints/breakpoints.o
 EXE = sfpan
 CC = gcc
-CFLAGS = -c -I ../../portsf-master/portsf/ -L ../../portsf-master/include/ 
-LFLAGS = -lz $(POBJS) -lm
+CFLAGS = -c 
+LFLAGS = -lz $(POBJS) $(BOBJS) -lm
 
 build: $(OBJS)
 	$(CC) $(OBJS) $(LFLAGS) -o $(EXE) 
