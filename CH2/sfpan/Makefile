@@ -1,11 +1,10 @@
 # makefile for sfpan
 
 OBJS = sfpan.o
-BOBJS = ../../breakpoints/breakpoints.o
 EXE = sfpan
 CC = gcc
 CFLAGS = -c 
-LFLAGS = -lportsf $(BOBJS) -lm
+LFLAGS = -lportsf -lbreakpoints -lm
 
 build: $(OBJS)
 	$(CC) $(OBJS) $(LFLAGS) -o $(EXE) $(LFLAGS) 
