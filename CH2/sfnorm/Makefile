@@ -1,13 +1,12 @@
 #makefile for sfnorm
 OBJS = sfnorm.o
-POBJS = ../../portsf-master/portsf/ieee80.o ../../portsf-master/portsf/portsf.o 
 EXE = sfnorm 
 CC = gcc
 CFLAGS = -c 
-LFLAGS = -lz $(POBJS) -lm
+LFLAGS = -lportsf -lm
 
 build:	$(OBJS)
-	$(CC) $(LFLAGS) $(OBJS) -o $(EXE) 
+	$(CC) $(OBJS) -o $(EXE) $(LFLAGS) 
 
 sfnorm.o:	sfnorm.c
 	$(CC) $(CFLAGS) sfnorm.c
