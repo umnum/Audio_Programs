@@ -14,7 +14,7 @@ clean:
 
 veryclean:
 	-rm -f $(POBJS) 
-	rm -f libportsf.a; 
+	rm -f libportsf.a 
 	sudo rm -f /usr/include/portsf.h
 	sudo rm -f /usr/include/ieee80.h 
 
