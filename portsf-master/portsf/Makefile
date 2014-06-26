@@ -31,10 +31,8 @@ install:	libportsf.a
 #
 
 ieee80.o: ieee80.c ieee80.h 
-	$(CC) -c ieee80.c 
+	$(CC) $(CFLAGS) ieee80.c 
 
-portsf.o: portsf.c portsf.h
-	$(CC) -c portsf.c 
-
-portsf.h:
+portsf.o: portsf.c 
 	sudo cp ../include/portsf.h /usr/include
+	$(CC) $(CFLAGS) portsf.c 
