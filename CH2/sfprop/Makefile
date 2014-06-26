@@ -1,13 +1,12 @@
 #makefile for sfprop 
 OBJS = sfprop.o
-POBJS = ../../portsf-master/portsf/ieee80.o ../../portsf-master/portsf/portsf.o 
 EXE = sfprop 
 CC = gcc
 CFLAGS = -c 
-LFLAGS = -lz $(POBJS) -lm
+LFLAGS = -lportsf -lm
 
 build:	$(OBJS)
-	$(CC) $(LFLAGS) $(OBJS) -o $(EXE) 
+	$(CC) $(OBJS) -o $(EXE) $(LFLAGS) 
 
 sfprop.o:	sfprop.c
 	$(CC) $(CFLAGS) sfprop.c
