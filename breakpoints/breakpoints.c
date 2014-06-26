@@ -85,3 +85,20 @@ BREAKPOINT maxpoint(const BREAKPOINT *points, long npoints)
 	}
 	return point;
 }
+
+/* scan breakpoints and check if they are within the inputed range */
+int inrange(const BREAKPOINT* points, double minval, double maxval, unsigned long npoints)
+{
+	unsigned long i;
+	int range_OK = 1;
+
+	for (i=0; i < npoints; i++)
+	{
+		if (points[i].value < minval || points[i].value > maxval)
+		{
+			range_OK = 0;
+			break;
+		}
+	}	
+	return range_OK;
+}
