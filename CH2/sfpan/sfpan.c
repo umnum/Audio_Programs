@@ -148,7 +148,7 @@ int main(int argc, char**argv)
 		for (i=0, out_i=0; i < framesread; i++)
 		{
 			stereopos = val_at_brktime(points,size,sampletime);
-			pos = simplepan(stereopos);
+			pos = constpower(stereopos);
 			outbuffer[out_i++] = (float)(inbuffer[i]*pos.left);	
 			outbuffer[out_i++] = (float)(inbuffer[i]*pos.right);
 			sampletime += timeincr;
