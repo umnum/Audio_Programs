@@ -1,38 +1,75 @@
-/* sfpan: changes the stereo panning position on a mono soundfile */
+/* sfpan: changes the stereo panning position on a mono soundfile 
+          by using values in a breakpoint file */
 /* usage: sfpan infile outfile panpos */
 #include <stdio.h>
 #include <stdlib.h>
 #include <portsf.h>
+#include <breakpoints.h>
 #define NFRAMES 100
 
-enum {ARG_PROGNAME, ARG_INFILE, ARG_OUTFILE, ARG_PANPOS, ARG_NARGS};
+enum {ARG_PROGNAME, ARG_INFILE, ARG_OUTFILE, ARG_BRKFILE, ARG_NARGS};
 
 int main(int argc, char**argv)
 {
-	double panpos;
+	PANPOS pos;
 	int framesread;
-	PANPOS thispos;
+	unsigned long size;
 	PSF_PROPS inprops, outprops;
 	psf_format outformat = PSF_FMT_UNKNOWN;
+	double timeincr, sampletime;
 
-	/* init all resourse vals to default states */
+	/* init all resource vals to default states */
 	int ifd=-1, ofd=-1;
 	int error=0;
 	float* inbuffer = NULL;
 	float* outbuffer = NULL;
+	FILE* fp = NULL;
+	BREAKPOINT* points = NULL;
 
 	if (argc!=ARG_NARGS)
 	{
 		printf("ERROR: insufficient number of arguments.\n"
-		       "USAGE: sfpan infile outfile panpos\n"); 
+		       "USAGE: sfpan infile outfile posfile.brk\n"
+		       "       posfile.brk is a breakpoint file\n"
+					 "       with values in range -1.0 <= pos <= 1.0\n"
+					 "       where -1.0 = full Left, 0 = Center, +1.0 = full Right\n" 
+		      );
 		return 1;
 	}
 
-	panpos = atof(argv[ARG_PANPOS]);
-	if ( (panpos < -1.0) || (panpos > 1.0) )
+	/* read breakpoint file and verify it */
+	fp = fopen(argv[ARG_BRKFILE],"r");
+	if (fp==NULL)
 	{
-		printf("ERROR: panpos value out of range -1 to 1\n");
+		printf("ERROR: unable to open breakpoint file \"%s\"\n", argv[ARG_BRKFILE]);
 		return 1;
+	}
+	points = get_breakpoints(fp,&size);
+	if (points==NULL)
+	{
+		printf("ERROR: no breakpoints read.\n");
+		error++;
+		goto exit;
+	}
+	if (size<2)
+	{
+		printf("ERROR: at least two breakpoints required.\n");
+		error++;
+		goto exit;
+	}
+	/* we require breakpoints to start from 0 */
+	if (points[0].time!=0.0)
+	{
+		printf("Error in breakpoint data: first time must be 0.0\n");
+		error++;
+		goto exit;
+	}
+	/* check if breakpoint values are in range */
+	if(!inrange(points,-1,1,size))
+	{
+		printf("Error in breakpoint data: values out of range -1 to +1\n");
+		error++;
+		goto exit;
 	}
 
 	/* start up portsf */
@@ -99,14 +136,22 @@ int main(int argc, char**argv)
 	/* allocate space for output frame buffer */
 	outbuffer = (float*)malloc(sizeof(float)*outprops.chans*NFRAMES);
 
-	thispos = simplepan(panpos);
+	/* init time position counter for reading envelope */
+	timeincr = 1.0 / inprops.srate;
+	sampletime = 0.0;	
+
 	while ((framesread = psf_sndReadFloatFrames(ifd,inbuffer,NFRAMES)) > 0)
 	{
 		int i, out_i; 
+		double stereopos;
+
 		for (i=0, out_i=0; i < framesread; i++)
 		{
-			outbuffer[out_i++] = (float)(inbuffer[i]*thispos.left);	
-			outbuffer[out_i++] = (float)(inbuffer[i]*thispos.right);
+			stereopos = val_at_brktime(points,size,sampletime);
+			pos = simplepan(stereopos);
+			outbuffer[out_i++] = (float)(inbuffer[i]*pos.left);	
+			outbuffer[out_i++] = (float)(inbuffer[i]*pos.right);
+			sampletime += timeincr;
 		}
 		if (psf_sndWriteFloatFrames(ofd,outbuffer,framesread) != framesread)
 		{
@@ -118,7 +163,12 @@ int main(int argc, char**argv)
 	
 	printf("Done.\n");
 
+	/* clean up resources */
 	exit:
+	if (fp)
+		fclose(fp);
+	if (points)
+		free(points);
 	if (ifd)
 		psf_sndClose(ifd);
 	if (ofd)
