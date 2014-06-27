@@ -3554,6 +3554,24 @@ PANPOS simplepan(double position)
 	return pos;
 }
 
+/* constant power pan function
+   a replacement for simplepan */
+PANPOS constpower(double position)
+{
+	PANPOS pos;
+	/* pi/2: 1/4 cycle of a sinusoid */
+	const double piovr2 = 4.0 * atan(1.0) * 0.5;
+	const double root2ovr2 = sqrt(2.0) * 0.5;
+	/* scale position to fit the pi/2 range */ 
+	double thispos = position * piovr2;
+	/* each channel uses a 1/4 of a cycle */
+	double angle = thispos * 0.5;
+
+	pos.left = root2ovr2 * (cos(angle) - sin(angle));
+	pos.right = root2ovr2 * (cos(angle) + sin(angle));
+	return pos;
+} 
+
 /* TODO: define a psf_writePeak function; probably to a single nominated channel. 
    This would be needed as soon as write is performed with random over-write activity.
    This is probably something to discourage, however!

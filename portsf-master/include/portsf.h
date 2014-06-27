@@ -248,6 +248,8 @@ psf_sndInfileProperties(const char *infile, int ifd, const PSF_PROPS *props);
 double maxsamp(float *buf, unsigned long blocksize);
 /* panning function returns a PANPOS object */
 PANPOS simplepan(double position);
+/* replacement for simplepan: constant power panning function */
+PANPOS constpower(double position);
 #ifdef __cplusplus
 }
 #endif
