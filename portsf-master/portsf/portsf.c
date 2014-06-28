@@ -3567,8 +3567,8 @@ PANPOS constpower(double position)
 	/* each channel uses a 1/4 of a cycle */
 	double angle = thispos * 0.5;
 
-	pos.left  = -1.0 * sin(angle - piovr2 * 0.5);
-	pos.right =        sin(angle + piovr2 * 0.5);
+	pos.left  = sin(angle - piovr2 * 0.5);
+	pos.right = sin(angle + piovr2 * 0.5);
 	return pos;
 } 
 
