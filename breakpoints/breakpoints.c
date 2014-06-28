@@ -122,18 +122,19 @@ int inrange(const BREAKPOINT* points, double minval, double maxval, unsigned lon
 }
 
 /* find the value for a given time in a breakpoint array */
-double val_at_brktime(const BREAKPOINT* points, unsigned long npoints, double time)
+double val_at_brktime(const BREAKPOINT* points, unsigned long npoints, unsigned long *pointnum, double time)
 {
 	unsigned long i;
 	BREAKPOINT left, right;
 	double frac, val, width;
 
 	/* scan until we find a span containing our time */
-	for (i=1; i < npoints; i++)
+	for (i=*pointnum; i < npoints; i++)
 	{
 		if (time <= points[i].time)
 			break;
 	}
+	*pointnum= i;
 
 	/* maintain final value if time is beyond end of data */
 	if (i==npoints)

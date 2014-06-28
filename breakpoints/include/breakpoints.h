@@ -26,4 +26,4 @@ BREAKPOINT minpoint(const BREAKPOINT* points, long npoints);
 int inrange(const BREAKPOINT* points, double minval, double maxval, unsigned long npoints); 
 
 /* find a value for a given time using an array of breakpoints */
-double val_at_brktime(const BREAKPOINT* points, unsigned long npoints, double time);
+double val_at_brktime(const BREAKPOINT* points, unsigned long npoints, unsigned long *pointnum, double time);
