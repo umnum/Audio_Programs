@@ -139,15 +139,16 @@ int main(int argc, char**argv)
 	/* init time position counter for reading envelope */
 	timeincr = 1.0 / inprops.srate;
 	sampletime = 0.0;	
+	unsigned long pointnum=1;
 
 	while ((framesread = psf_sndReadFloatFrames(ifd,inbuffer,NFRAMES)) > 0)
 	{
 		int i, out_i; 
 		double stereopos;
 
-		for (i=0, out_i=0; i < framesread; i++)
+		for (i=0, out_i=0; i < framesread; i++) 
 		{
-			stereopos = val_at_brktime(points,size,sampletime);
+			stereopos = val_at_brktime(points,size,&pointnum,sampletime);
 			pos = constpower(stereopos);
 			outbuffer[out_i++] = (float)(inbuffer[i]*pos.left);	
 			outbuffer[out_i++] = (float)(inbuffer[i]*pos.right);
