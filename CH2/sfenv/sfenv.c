@@ -30,7 +30,7 @@ int main(int argc, char**argv)
 	if (argc!=ARG_NARGS)
 	{
 		printf("ERROR:\tinsufficient arguments.\n"
-					 "USAGE:\tenvx insndfile infile.brk outsndfile\n"
+					 "USAGE:\tsfenv insndfile infile.brk outsndfile\n"
 		      );
 		return 1;
 	}
@@ -57,7 +57,7 @@ int main(int argc, char**argv)
 	/* check if infile uses 8-bit samples*/ 
 	if (inprops.samptype==PSF_SAMP_8)
 	{
-		printf("ERROR: envx does not support 8-bit format.\n");
+		printf("ERROR: sfenv does not support 8-bit format.\n");
 		error++;
 		goto exit;
 	}
@@ -132,7 +132,7 @@ int main(int argc, char**argv)
 		goto exit;
 	}
 
-	/* allocate memory for infile buffer */
+	/* allocate memory for read write buffer */
 	buffer= (float*)malloc(NFRAMES * sizeof(float));
 	if (buffer==NULL)
 	{
@@ -188,7 +188,7 @@ int main(int argc, char**argv)
 		psf_sndClose(ofd);
 	if (fp)
 		if(fclose(fp))
-			printf("envx: failed to close breakpoint file: %s\n",argv[ARG_INBRKFILE]);
+			printf("sfenv: failed to close breakpoint file: %s\n",argv[ARG_INBRKFILE]);
 	if (buffer)
 		free(buffer);
 	psf_finish();
