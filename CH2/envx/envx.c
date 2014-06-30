@@ -169,16 +169,17 @@ int main(int argc, char**argv)
 		error++;
 	}
 	else
-		printf("\nDone: %d errors\n"
+		printf("\nDone: %d error%s\n"
 		       "breakpoint file created: %s\n"
 		       "breakpoints written: %lu\n",
-						error, argv[ARG_OUTFILE], npoints
+						error, (error==1)?"":"s", argv[ARG_OUTFILE], npoints
 		      );
 
 	/* do all the cleanup */
 	exit:
 	if (ifd>=0)
-		psf_sndClose(ifd);
+		if(psf_sndClose(ifd))
+			printf("envx: failed to close infile: %s\n",argv[ARG_INFILE]);
 	if (fp)
 		if(fclose(fp))
 			printf("\nenvx: failed to close breakpoint file: %s\n",argv[ARG_OUTFILE]);
