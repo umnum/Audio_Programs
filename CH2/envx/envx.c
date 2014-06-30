@@ -15,10 +15,10 @@ int main(int argc, char**argv)
 	long framesread, /* number of frames copied to buffer */ 
 	     totalread; /* running count of sample frames */
 	unsigned long npoints; /* number of breakpoints generated */
-	unsigned long winsize;
+	unsigned long winsize; /* number of infile buffer frames */
 	char flag;
 	double brktime; /* holds the time for the current breakpoint time */
-	double windur = DEFAULT_WINDOW_MSECS;
+	double windur = DEFAULT_WINDOW_MSECS; /* time duration of infile buffer */
 
 	/* init all resource vals to default states */ 
 	int ifd=-1; 
@@ -61,8 +61,8 @@ int main(int argc, char**argv)
 	{
 		printf("ERROR:\tinsufficient arguments.\n"
 					 "USAGE:\tenvx [-wN] insndfile outfile.brk\n"
-		       "-wN: set extraction window size to N msecs.\n"
-		       "(default: 15)\n"
+		       "      \t-wN: set extraction window size to N msecs.\n"
+		       "      \t(default: 15)\n"
 		      );
 		return 1;
 	}
@@ -120,6 +120,16 @@ int main(int argc, char**argv)
 
 	/* set buffersize to the required envelope window size */
 	windur /= 1000.0; /* convert to secs */
+
+	/* check if window duration is smaller than duration between two samples */
+	if (windur < 1./inprops.srate)
+	{
+		printf("ERROR: window size cannot be smaller than the\n"
+		       "       time length between two sample frames.\n"); 
+		error++;
+		goto exit;
+	}
+
 	winsize = (unsigned long)(windur * inprops.srate); /* number of frames */
 
 	/* allocate memory for infile buffer */
