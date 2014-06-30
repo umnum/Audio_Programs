@@ -1,5 +1,5 @@
 /* sfenv.c: apply an amplitude envelope to a mono soundfle */ 
-/* USAGE: sfenv insndfile infile.brk outsndfile */ 
+/* USAGE: sfenv [-n] [normalizing value] insndfile infile.brk outsndfile */ 
 #include <stdio.h>
 #include <stdlib.h>
 #include <portsf.h>
@@ -18,6 +18,11 @@ int main(int argc, char**argv)
 	unsigned long size; /* number of breakpoints */
 	psf_format outformat = PSF_FMT_UNKNOWN;
 	double timeincr, sampletime;
+	char flag; /* check for any command line options */
+	int isnorm=0; /* -n option will normalize breakpoints */
+	double scalefac=1.0; /* scale factor used for normalizing breakpoints */
+	double normvalue=1.0; /* normalizing value is set to 1 by default */
+	BREAKPOINT max; /* breakpoint with the maximum value, used for scaling */
 
 	/* init all resource vals to default states */ 
 	int ifd=-1, ofd=-1; 
@@ -25,12 +30,67 @@ int main(int argc, char**argv)
 	float* buffer = NULL;
 	FILE* fp = NULL;
 
-	printf ("SFENV: apply an amplitude envelope to a mono soundfile.\n");
+	printf ("\nSFENV: apply an amplitude envelope to a mono soundfile.\n");
+
+	/* check for any command-line options */
+	if (argc>1)
+	{
+		while (argv[1][0]=='-')
+		{
+			flag = argv[1][1];
+			switch(flag)
+			{
+				case('\0'):
+					printf("ERROR:\tyou did not specify an option after using '-'\n"
+					       "USAGE:\tsfenv [-n] [normalizing value] insndfile infile.brk outsndfile\n"
+					       "      \t-n option normalizes breakpoint values\n"
+					       "      \tbreakpoint values are normalized to 1 by default.\n"
+					      );
+					return 1;
+				case('n'):
+					if (argv[1][2]=='\0')
+					{
+						isnorm = 1;
+						/* check for a normalizing value after -n option */ 
+						if ((argc>=6) && ( ((argv[2][0]>='0') && (argv[2][0]<='9')) || /* check if the first character is [0-9] */ 
+						                   ((argv[2][0]=='-') && ((argv[2][1]>='0') && (argv[2][1]<='9'))) || /* or check if the first two characters are -[0-9] OR .[0-9] */
+						                   ((argv[2][0]=='-') && (argv[2][1]=='.' )) || /* or check if the first two characters are -. */  
+						                   ((argv[2][0]=='.') && ((argv[2][1]>='0') && (argv[2][1]<='9'))) ) )  
+						{	/* a normalizing value was specified */
+							if ((normvalue=atof(argv[2]))<=0.0)
+							{
+								printf("ERROR:\tnormalizing value must be positive.\n"
+								       "USAGE:\tsfenv [-n] [normalizing value] insndfile infile.brk outsndfile\n"
+								       "      \t-n option normalizes breakpoint values\n"
+								       "      \tbreakpoint values are normalized to 1 by default.\n"
+								      );
+								return 1;
+							}
+							argc--;
+							argv++;
+						}
+						break;	
+					}
+				default:
+					printf("ERROR:\t%s is not a valid option.\n"
+					       "USAGE:\tsfenv [-n] [normalizing value] insndfile infile.brk outsndfile\n"
+					       "      \t-n option normalizes breakpoint values\n"
+					       "      \tbreakpoint values are normalized to 1 by default.\n",
+					       argv[1] 
+					      );
+					return 1;
+			}
+			argc--;
+			argv++;
+		}
+	}	
 
 	if (argc!=ARG_NARGS)
 	{
 		printf("ERROR:\tinsufficient arguments.\n"
-					 "USAGE:\tsfenv insndfile infile.brk outsndfile\n"
+					 "USAGE:\tsfenv [-n] [normalizing value] insndfile infile.brk outsndfile\n"
+		       "      \t-n option normalizes breakpoint values\n"
+		       "      \tbreakpoint values are normalized to 1 by default.\n"
 		      );
 		return 1;
 	}
@@ -108,6 +168,13 @@ int main(int argc, char**argv)
 		goto exit;
 	}
 
+	/* if specified by the user, normalize all the breakpoint values */
+	if (isnorm)
+	{
+		max = maxpoint(points,size);
+		scalefac = normvalue/max.value;
+	}
+
 	/* outfile properties are identicle to infile properties */
 	outprops = inprops;
 
@@ -176,7 +243,7 @@ int main(int argc, char**argv)
 				lastpoint++; 
 				misscount++;
 			}
-			buffer[i] = (float)(buffer[i] * thisamp);
+			buffer[i] = (float)(buffer[i] * thisamp * scalefac);
 		}
 		if (psf_sndWriteFloatFrames(ofd,buffer,framesread) != framesread)
 		{
