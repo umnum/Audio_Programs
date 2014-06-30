@@ -181,7 +181,16 @@ int main(int argc, char**argv)
 		psf_sndClose(ifd);
 	if (fp)
 		if(fclose(fp))
-			printf("envx: failed to close breakpoint file: %s\n",argv[ARG_OUTFILE]);
+			printf("\nenvx: failed to close breakpoint file: %s\n",argv[ARG_OUTFILE]);
+		else if (error)
+		{
+			printf("\nThere was an error while processing the breakpoint file.\n"
+			       "Deleting outfile: %s ...\n", argv[ARG_OUTFILE]);
+			if (remove(argv[ARG_OUTFILE]))
+				printf("Error: failed to delete %s\n", argv[ARG_OUTFILE]);
+			else
+				printf("%s successfully deleted.\n",argv[ARG_OUTFILE]);
+		}
 	if (inbuffer)
 		free(inbuffer);
 	psf_finish();
