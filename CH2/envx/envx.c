@@ -1,11 +1,12 @@
 /* envx.c: extract amplitude envelope from mono soundfile */ 
-/* USAGE: envx [-wN] infile outfile */ 
+/* USAGE: envx [-wN] [-n] insndfile outfile.brk */ 
 #include <stdio.h>
 #include <stdlib.h>
 #include <portsf.h>
 #include <breakpoints.h>
 #include <math.h>
 #define DEFAULT_WINDOW_MSECS 15
+#define max(x,y) ((x) > (y) ? (x) : (y))
 
 enum {ARG_PROGNAME, ARG_INFILE, ARG_OUTFILE, ARG_NARGS};
 
@@ -19,6 +20,9 @@ int main(int argc, char**argv)
 	char flag;
 	double brktime; /* holds the time for the current breakpoint time */
 	double windur = DEFAULT_WINDOW_MSECS; /* time duration of infile buffer */
+	int insize; /* size of the infile in frames */
+	int brktotal; /* total number of expected breakpoints */
+	int isnorm=0; /* -n option for normalizing breakpoints */
 
 	/* init all resource vals to default states */ 
 	int ifd=-1; 
@@ -40,14 +44,16 @@ int main(int argc, char**argv)
 				case('\0'):
 					printf("ERROR: missing flag name.\n");
 					return 1;
-				case('w'):
-					windur = atof(&argv[1][2]);
+				case('w'): windur = atof(&argv[1][2]);
 					if (windur <= 0.0)
 					{
 						printf("ERROR: bad value for window duration\n"
 						       "       must be positive\n");
 						return 1;	
 					}
+					break;
+				case('n'):
+					isnorm = 1;
 					break;
 				default:
 					break;
@@ -60,9 +66,10 @@ int main(int argc, char**argv)
 	if (argc!=ARG_NARGS)
 	{
 		printf("ERROR:\tinsufficient arguments.\n"
-					 "USAGE:\tenvx [-wN] insndfile outfile.brk\n"
+		       "USAGE:\tenvx [-wN] [-n] insndfile outfile.brk\n"
 		       "      \t-wN: set extraction window size to N msecs.\n"
 		       "      \t(default: 15)\n"
+		       "      \t-n: normalize breakpoint values to 1\n"
 		      );
 		return 1;
 	}
@@ -131,6 +138,16 @@ int main(int argc, char**argv)
 	}
 
 	winsize = (unsigned long)(windur * inprops.srate); /* number of frames */
+
+	//TODO normalize breakpoint values
+	if (isnorm)
+	{
+		printf("normal option initiated.\n");
+		insize = psf_sndSize(ifd);
+		brktotal = insize/winsize + 1;
+
+		/* allocate space for peak info */ 
+	}
 
 	/* allocate memory for infile buffer */
 	inbuffer= (float*)malloc(winsize * sizeof(float));
