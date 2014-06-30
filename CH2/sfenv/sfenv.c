@@ -150,6 +150,8 @@ int main(int argc, char**argv)
 	timeincr = 1.0/inprops.srate;
 	sampletime = 0.0;
 	unsigned long pointnum = 1;
+	/* keep track of any missed breakpoint values */
+	unsigned long lastpoint, misscount=0;
 
 	/* loop every time NFRAMES are copied, report any errors */
 	while ((framesread = psf_sndReadFloatFrames(ifd,buffer,NFRAMES))>0)
@@ -161,9 +163,19 @@ int main(int argc, char**argv)
 		/* extract breakpoint values */
 		double thisamp;
 
+		/* when processing each sample value, each breakpoint
+		   span is calculated by taking the "rightmost" breakpoint time 
+		   to the left of the current sampletime and the "leftmost"
+		   breakpoint time to the right of the current sampletime */
 		for (i=0; i < framesread; i++, sampletime += timeincr)
 		{
+			lastpoint = pointnum;
 			thisamp = val_at_brktime(points,size,&pointnum,sampletime); 
+			while (pointnum - lastpoint > 2)
+			{
+				lastpoint++; 
+				misscount++;
+			}
 			buffer[i] = (float)(buffer[i] * thisamp);
 		}
 		if (psf_sndWriteFloatFrames(ofd,buffer,framesread) != framesread)
@@ -176,9 +188,22 @@ int main(int argc, char**argv)
 
 	printf("\nDone: %d errors\n"
 				 "soundfile created: %s\n"
-				 "samples copied: %lu\n",
+				 "samples copied: %lu\n\n",
 					error, argv[ARG_OUTSNDFILE], totalread 
 				);
+
+	/* tell user if breakpoint values weren't read */
+	int plural = misscount > 1;
+	if (misscount)
+		printf("Warning: %lu breakpoint value%s %s not read.\n"
+		       "         %s breakpoint%s could either have \n"
+		       "         the same time value%s as other adjacent breakpoints\n"
+		       "         or %s time difference is smaller than the \n"
+		       "         time difference of each sample.\n\n", 
+		       misscount, (plural)?"s":"", (plural)?"were":"was",
+		       (plural)?"These":"This", (plural)?"s":"", (plural)?"s":"",
+		       (plural)?"their":"its"
+		      );	
 
 	/* do all the cleanup */
 	exit:
@@ -188,7 +213,7 @@ int main(int argc, char**argv)
 		psf_sndClose(ofd);
 	if (fp)
 		if(fclose(fp))
-			printf("sfenv: failed to close breakpoint file: %s\n",argv[ARG_INBRKFILE]);
+			printf("sfenv: failed to close breakpoint file: %s\n\n",argv[ARG_INBRKFILE]);
 	if (buffer)
 		free(buffer);
 	psf_finish();
