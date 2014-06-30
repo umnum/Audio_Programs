@@ -253,10 +253,10 @@ int main(int argc, char**argv)
 		}
 	}
 
-	printf("\nDone: %d errors\n"
+	printf("\nDone: %d error%s\n"
 				 "soundfile created: %s\n"
 				 "samples copied: %lu\n\n",
-					error, argv[ARG_OUTSNDFILE], totalread 
+					error, (error==1)?"":"s", argv[ARG_OUTSNDFILE], totalread 
 				);
 
 	/* tell user if breakpoint values weren't read */
@@ -275,9 +275,22 @@ int main(int argc, char**argv)
 	/* do all the cleanup */
 	exit:
 	if (ifd>=0)
-		psf_sndClose(ifd);
+		if(psf_sndClose(ifd))
+			printf("sfenv: failed to close infile: %s\n\n",argv[ARG_INSNDFILE]);
 	if (ofd>=0)
-		psf_sndClose(ofd);
+	{
+		if(psf_sndClose(ofd))
+			printf("sfenv: failed to close outfile: %s\n\n",argv[ARG_OUTSNDFILE]);	
+		else if (error)
+		{
+			printf("There was an error while processing the sound file.\n"
+			       "Deleting outfile: %s ...\n", argv[ARG_OUTSNDFILE]);
+			if (remove(argv[ARG_OUTSNDFILE]))
+				printf("Error: failed to delete %s\n\n", argv[ARG_OUTSNDFILE]);
+			else
+				printf("%s successfully deleted.\n\n", argv[ARG_OUTSNDFILE]);
+		}	
+	}
 	if (fp)
 		if(fclose(fp))
 			printf("sfenv: failed to close breakpoint file: %s\n\n",argv[ARG_INBRKFILE]);
