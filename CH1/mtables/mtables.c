@@ -6,44 +6,44 @@
 
 int main(int argc, char* argv[])
 {
-  /* default flags for command line options */  
-  int isrow=0, // creates a row lable if '-r' option is set   
-			iscol=0, // creates a column lable if '-c' option is set  
-			isapp=0, // appends to a specified output file if '-a' option  is set   
-			iserr=0; // set to a negative value if there was an error writing to the output file   
+	/* default flags for command line options */  
+	int isrow=0, // creates a row lable if '-r' option is set   
+	    iscol=0, // creates a column lable if '-c' option is set  
+	    isapp=0, // appends to a specified output file if '-a' option  is set   
+	    iserr=0; // set to a negative value if there was an error writing to the output file
 
 	int nFrom, nTo, // multiplication table range of values  
-			i, j;
+	    i, j;
  
 	/* pointer to optional output file */ 
-  FILE* fp;
+	FILE* fp;
 
 	/* there are command line arguments */ 	
-  while (argc > 1) 
-  {
-		/* test for command line options */ 
-    if (argv[1][0] == '-') 
-    { 
-      if (argv[1][1] == 'r')
-      { 
-        isrow = 1; 
-      }
-      else if (argv[1][1] == 'c')
-      {
-        iscol = 1; 
-      }
-      else if (argv[1][1] == 'a') 
-      { 
-       isapp = 1;
-      }
-			else 
-			{
-				printf("ERROR: unrecognized option %s\n", argv[1]);
-				return 1; 
-			}
-      argc--;
-      argv++; 
-    }
+	while (argc > 1) 
+	{
+	/* test for command line options */ 
+	if (argv[1][0] == '-') 
+	{ 
+		if (argv[1][1] == 'r')
+		{ 
+			isrow = 1; 
+		}
+		else if (argv[1][1] == 'c')
+		{
+			iscol = 1; 
+		}
+		else if (argv[1][1] == 'a') 
+		{ 
+			isapp = 1;
+		}
+		else 
+		{
+			printf("ERROR: unrecognized option %s\n", argv[1]);
+			return 1; 
+		}
+			argc--;
+			argv++; 
+		}
 		else
 			break; 
 	} 
@@ -55,15 +55,13 @@ int main(int argc, char* argv[])
 		printf ("USAGE: mtables [-r] [-c] [-a] nFrom nTo [output.txt]\n"); 
 		return 1; 
 	} 
-  if (argc > 4)
+	if (argc > 4)
 	{
 		printf ("ERROR:  There are too many arguments.\n");
-		printf ("USAGE: mtables [-r] [-c] [-a] nFrom nTo [output.txt]\n"); 
-		return 1;
-	}
+		printf ("USAGE: mtables [-r] [-c] [-a] nFrom nTo [output.txt]\n"); return 1; }
 	
 	int f1 = atoi(argv[1]);
-  int f2 = atoi(argv[2]);
+	int f2 = atoi(argv[2]);
 
 	/* test for the correct type of command line arguments */ 
 	if (f1==0 || f2==0)
@@ -82,17 +80,17 @@ int main(int argc, char* argv[])
 		}
 	}
 
-  // nFrom gets the smallest value, nTo gets the largest 
-  nFrom = (f1<f2)?f1:f2;
-  nTo = (f1>f2)?f1:f2;
+	// nFrom gets the smallest value, nTo gets the largest 
+	nFrom = (f1<f2)?f1:f2;
+	nTo = (f1>f2)?f1:f2;
 
 	/* if an output file is specified, open the file */ 
-  fp = NULL; 
-  if (argc == 4)
-  {
-	  if (isapp)
+	fp = NULL; 
+	if (argc == 4)
+	{
+		if (isapp)
 		{ /* append to the output file */ 
-		  fp = fopen(argv[3], "a");
+			fp = fopen(argv[3], "a");
 			if (fp==NULL)
 			{
 				printf ("WARNING: Unable to create file %s\n", argv[3]); 
@@ -111,10 +109,10 @@ int main(int argc, char* argv[])
 	}
 
 	/* create a column lable for -c option */ 
-  if (iscol)
+	if (iscol)
 	{
 		if (isrow)
-			printf("     ");
+		printf("     ");
 		for (i=1; i<=9; i++)
 		{
 			printf("%5d", i); 

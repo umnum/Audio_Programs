@@ -88,7 +88,7 @@ int main(int argc, char**argv)
 	if (argc!=ARG_NARGS)
 	{
 		printf("ERROR:\tinsufficient arguments.\n"
-					 "USAGE:\tsfenv [-n] [normalizing value] insndfile infile.brk outsndfile\n"
+		       "USAGE:\tsfenv [-n] [normalizing value] insndfile infile.brk outsndfile\n"
 		       "      \t-n option normalizes breakpoint values\n"
 		       "      \tbreakpoint values are normalized to 1 by default.\n"
 		      );
@@ -256,7 +256,7 @@ int main(int argc, char**argv)
 	printf("\nDone: %d error%s\n"
 				 "soundfile created: %s\n"
 				 "samples copied: %lu\n\n",
-					error, (error==1)?"":"s", argv[ARG_OUTSNDFILE], totalread 
+	        error, (error==1)?"":"s", argv[ARG_OUTSNDFILE], totalread 
 				);
 
 	/* tell user if breakpoint values weren't read */
