@@ -3317,7 +3317,7 @@ static float trirand(void)
 
 int psf_sndSetDither(int sfd,unsigned int dtype)
 {
-	PSFFILE *sfdat;;
+	PSFFILE *sfdat;
 
 	if(sfd < 0 || sfd > psf_maxfiles)
 		return PSF_E_BADARG;
@@ -3571,6 +3571,78 @@ PANPOS constpower(double position)
 	pos.right = sin(angle + piovr2 * 0.5);
 	return pos;
 } 
+
+/* return the peak value of a soundfile 
+   returns -1 if there are memory allocation errors 
+   returns -2 if the soundfile cannot be reset */
+double psf_sndPeakValue(int sfd, const PSF_PROPS *props)
+{
+	PSFFILE *sfdat;
+	PSF_CHPEAK* peaks = NULL;
+	double thispeak, /* current peak read in buffer */
+	       peak = 0.0; /* peak initialized to 0 */
+	float* buffer = NULL;
+	const int nFrames = 100; /* buffer will refresh every 100 frames */
+	long framesread, totalread;
+	unsigned long blocksize; /* number of samples currently read */
+			
+	if(sfd < 0 || sfd > psf_maxfiles)
+		return PSF_E_BADARG;
+	
+	sfdat  = psf_files[sfd];
+	if(sfdat==NULL)
+		return PSF_E_BADARG;
+	#ifdef _DEBUG		
+		assert(sfdat->file);
+		assert(sfdat->filename);
+	#endif
+
+	/* allocate space for buffer */
+	buffer = (float*)malloc(props->chans*sizeof(PSF_CHPEAK)*nFrames);
+	if (buffer==NULL)
+	{
+		printf("No memory!");
+		return -1;
+	}
+
+	/* allocate space for peak info */
+	peaks = (PSF_CHPEAK*)malloc(props->chans*sizeof(PSF_CHPEAK));	
+	if (peaks==NULL)
+	{
+		printf("No memory!");
+		return -1;
+	}
+
+	/* get peak info: scan file if requested */
+	if (psf_sndReadPeaks(sfd,peaks,NULL)>0)	
+	{
+		/* get peak info */
+		long i;
+		for (i=0;i<props->chans;i++)
+			peak = max(peaks[i].val,peak); 
+	}
+	else
+	{
+		/* scan file and rewind */
+		framesread = psf_sndReadFloatFrames(sfd,buffer,nFrames);
+		while ((framesread=psf_sndReadFloatFrames(sfd,buffer,nFrames)) > 0)
+		{
+			blocksize = (unsigned long)framesread*props->chans;
+			thispeak = maxsamp(buffer,blocksize);
+			peak = max(thispeak,peak);
+		}
+
+		/* rewind file */
+		if (psf_sndSeek(sfd,0,PSF_SEEK_SET))
+		{
+			printf("ERROR: cannot reset file\n");
+			return -2;
+		}
+	}
+	
+	return peak;	
+}
+
 
 /* TODO: define a psf_writePeak function; probably to a single nominated channel. 
    This would be needed as soon as write is performed with random over-write activity.

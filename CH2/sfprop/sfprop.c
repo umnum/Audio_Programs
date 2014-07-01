@@ -22,7 +22,7 @@ int main (int argc, char**argv)
 	if (argc!=ARG_NARGS)
 	{
 		printf("ERROR: insufficient number of arguments.\n"
-					 "USAGE: sfprop infile.wav.\n");
+		       "USAGE: sfprop infile.wav.\n");
 		return 1;
 	}
 
@@ -49,7 +49,7 @@ int main (int argc, char**argv)
 	if (size < 0)
 	{
 		printf("ERROR: unable to obtain the size of \"%s\"\n",
-					 argv[ARG_INFILE]);
+		        argv[ARG_INFILE]);
 		error++;
 		goto exit;
 	}
@@ -146,16 +146,16 @@ int main (int argc, char**argv)
 	}
 
 	printf("\n%s properties:"
-				 "\n--------------------------------\n"
-				 "frame size:      %d\n"
-				 "sample rate:     %d\n"
-				 "channels:        %d\n"
-				 "sample type:     %s\n"
-				 "sample format:   %s\n"
-				 "channel format:  %s\n",
-				 argv[ARG_INFILE], size,
-				 props.srate, props.chans, 
-				 samptype, format, chformat);
+	       "\n--------------------------------\n"
+	       "frame size:      %d\n"
+	       "sample rate:     %d\n"
+	       "channels:        %d\n"
+	       "sample type:     %s\n"
+	       "sample format:   %s\n"
+	       "channel format:  %s\n",
+	        argv[ARG_INFILE], size,
+	        props.srate, props.chans, 
+	        samptype, format, chformat);
 
 	if (psf_sndReadPeaks(ifd, peaks, NULL) > 0)
 	{
@@ -170,7 +170,7 @@ int main (int argc, char**argv)
 				peaks[i].val = 1.0e-4;
 			peakDB = log10(peaks[i].val);
 			printf("\tCH %ld:\t%.4f\t(%.4f dB) at %.4f secs\n",
-						 i+1, peaks[i].val, peakDB, peaktime); 
+			        i+1, peaks[i].val, peakDB, peaktime); 
 		}
 	}
 	

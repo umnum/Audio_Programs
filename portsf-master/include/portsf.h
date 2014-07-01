@@ -250,6 +250,10 @@ double maxsamp(float *buf, unsigned long blocksize);
 PANPOS simplepan(double position);
 /* replacement for simplepan: constant power panning function */
 PANPOS constpower(double position);
+/* returns the peak value of a soundfile
+   returns -1 for memory allocation error
+   returns -2 for file reset error */
+double psf_sndPeakValue(int sfd, const PSF_PROPS *props);
 #ifdef __cplusplus
 }
 #endif

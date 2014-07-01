@@ -31,8 +31,8 @@ int main(int argc, char**argv)
 		printf("ERROR: insufficient number of arguments.\n"
 		       "USAGE: sfpan infile outfile posfile.brk\n"
 		       "       posfile.brk is a breakpoint file\n"
-					 "       with values in range -1.0 <= pos <= 1.0\n"
-					 "       where -1.0 = full Left, 0 = Center, +1.0 = full Right\n" 
+		       "       with values in range -1.0 <= pos <= 1.0\n"
+		       "       where -1.0 = full Left, 0 = Center, +1.0 = full Right\n" 
 		      );
 		return 1;
 	}
@@ -126,7 +126,7 @@ int main(int argc, char**argv)
 	{
 		printf("Outfile name \"%s\" has unknown format.\n"
 		       "Use any of .wav .aiff .aif .afc .aifc\n",
-		       argv[ARG_OUTFILE]);
+		        argv[ARG_OUTFILE]);
 		error++;
 		goto exit;
 	} 
