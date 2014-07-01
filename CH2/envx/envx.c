@@ -6,7 +6,6 @@
 #include <breakpoints.h>
 #include <math.h>
 #define DEFAULT_WINDOW_MSECS 15
-#define max(x,y) ((x) > (y) ? (x) : (y))
 
 enum {ARG_PROGNAME, ARG_INFILE, ARG_OUTFILE, ARG_NARGS};
 
@@ -20,9 +19,9 @@ int main(int argc, char**argv)
 	char flag;
 	double brktime; /* holds the time for the current breakpoint time */
 	double windur = DEFAULT_WINDOW_MSECS; /* time duration of infile buffer */
-	int insize; /* size of the infile in frames */
-	int brktotal; /* total number of expected breakpoints */
 	int isnorm=0; /* -n option for normalizing breakpoints */
+	double peak; /* peak value of the soundfile */
+	double scalefac=1.0; /* normalizing scale factor */ 
 
 	/* init all resource vals to default states */ 
 	int ifd=-1; 
@@ -142,11 +141,8 @@ int main(int argc, char**argv)
 	//TODO normalize breakpoint values
 	if (isnorm)
 	{
-		printf("normal option initiated.\n");
-		insize = psf_sndSize(ifd);
-		brktotal = insize/winsize + 1;
-
-		/* allocate space for peak info */ 
+		peak = psf_sndPeakValue(ifd,&inprops);
+		scalefac = 1.0/peak;	
 	}
 
 	/* allocate memory for infile buffer */
@@ -175,7 +171,7 @@ int main(int argc, char**argv)
 	
 		/* extract breakpoint value */
 		double amp;
-		amp = maxsamp(inbuffer,framesread);
+		amp = scalefac * maxsamp(inbuffer,framesread);
 		
 		/* write breakpoint time and value to outfile */
 		if (fprintf(fp,"%f\t%f\n",brktime,amp)<2)
