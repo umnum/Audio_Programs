@@ -1,14 +1,13 @@
 # makefile for breakdur
 
 OBJS = breakdur.o
-BLIB = ../../breakpoints/breakpoints.o 
 EXE = breakdur
 CC = gcc
 CFLAGS = -c 
-LFLAGS = -lz $(BLIB) 
+LFLAGS = -lbreakpoints 
 
 build: $(OBJS)
-	$(CC) $(LFLAGS) $(OBJS) -o $(EXE)
+	$(CC) $(OBJS) -o $(EXE) $(LFLAGS)
 
 breakdur.o: breakdur.c
 	$(CC) $(CFLAGS) breakdur.c 

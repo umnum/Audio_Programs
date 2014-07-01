@@ -26,7 +26,7 @@ int main(int argc, char**argv)
 	if (argc!=ARG_NARGS)
 	{
 		printf("insufficient arguments.\n"
-					 "USAGE:\tsf2float infile outfile buffer limit N\n");
+		       "USAGE:\tsf2float infile outfile buffer limit N\n");
 		return 1;
 	}
 	
@@ -70,7 +70,7 @@ int main(int argc, char**argv)
 	}
 
 	/* we now have a resource, so we use goto hereafter
-		 on hitting any error */
+	   on hitting any error */
 	/* get number of frames from infile */
 	size = psf_sndSize(ifd);
 	if(size<0)
@@ -83,10 +83,10 @@ int main(int argc, char**argv)
 	if(size<limit)
 	{
 		printf("ERROR: infile size is less than the copy limit.\n"
-					 "infile:\t%s\n"
-					 "infile size:\t%d frames\n"
-					 "copy limit:\t%d frames\n"
-					 ,argv[ARG_INFILE], size, limit);
+		       "infile:\t%s\n"
+		       "infile size:\t%d frames\n"
+		       "copy limit:\t%d frames\n",
+		        argv[ARG_INFILE], size, limit);
 		error++;
 		goto exit;
 	}
@@ -115,8 +115,8 @@ int main(int argc, char**argv)
 	if (outformat == PSF_FMT_UNKNOWN)
 	{
 		printf("Outfile name \"%s\" has unknown format.\n"
-					 "Use any of .wav .aiff .aif .afc .aifc\n",
-					 argv[ARG_OUTFILE]);
+		       "Use any of .wav .aiff .aif .afc .aifc\n",
+		        argv[ARG_OUTFILE]);
 		error++;
 		goto exit;
 	}
@@ -159,7 +159,7 @@ int main(int argc, char**argv)
 	{
 
 		/* make sure to set nFrames to the correct value
-			 every time you pass through the for loop */ 
+		   every time you pass through the for loop */ 
 		if (limit < atoi(argv[ARG_BUFF]))
 			nFrames = (DWORD)limit;
 		else
@@ -207,7 +207,7 @@ int main(int argc, char**argv)
 	}
 	else
 		printf("Done. %ld sample frames copied to %s\n",
-						totalread, argv[ARG_OUTFILE]);
+		        totalread, argv[ARG_OUTFILE]);
 
 	/* report PEAKS to user */
 	if (psf_sndReadPeaks(ofd,peaks,NULL)>0)
@@ -223,7 +223,7 @@ int main(int argc, char**argv)
 				peaks[i].val = 1.0e-4;
 			peakDB = log10(peaks[i].val);
 			printf("CH %ld:\t%.4f\t(%.4f dB) at %.4f secs\n",
-							i+1, peaks[i].val, peakDB, peaktime);	
+			        i+1, peaks[i].val, peakDB, peaktime);	
 		}
 	}
 	

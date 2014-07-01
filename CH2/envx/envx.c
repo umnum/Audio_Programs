@@ -206,7 +206,7 @@ int main(int argc, char**argv)
 		printf("\nDone: %d error%s\n"
 		       "breakpoint file created: %s\n"
 		       "breakpoints written: %lu\n",
-						error, (error==1)?"":"s", argv[ARG_OUTFILE], npoints
+		        error, (error==1)?"":"s", argv[ARG_OUTFILE], npoints
 		      );
 
 	/* do all the cleanup */

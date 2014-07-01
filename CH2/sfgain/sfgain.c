@@ -33,8 +33,8 @@ int main(int argc, char**argv)
 	if ((argc<ARG_NOPS)||(argc>ARG_OPS))
 	{
 		printf("insufficient arguments.\n"
-					 "USAGE:\tsfgain infile outfile buffer limit N [dBval | -a ampfac]\n"
-					 "dBval must be <= 0 or ampfac must be > 0\n"); 
+		       "USAGE:\tsfgain infile outfile buffer limit N [dBval | -a ampfac]\n"
+		       "dBval must be <= 0 or ampfac must be > 0\n"); 
 		return 1;
 	}
 
@@ -48,8 +48,8 @@ int main(int argc, char**argv)
 			else
 			{
 				printf("ERROR: %s is not a valid command-line option.\n"
-							 "USAGE:\tsfgain infile outfile buffer limit N [dBval | -a ampfac]\n"
-							 "dBval must be <= 0 or ampfac must be > 0\n", argv[ARG_OP]); 
+				       "USAGE:\tsfgain infile outfile buffer limit N [dBval | -a ampfac]\n"
+				       "dBval must be <= 0 or ampfac must be > 0\n", argv[ARG_OP]); 
 				return 1;
 			}
 		}
@@ -98,7 +98,7 @@ int main(int argc, char**argv)
 		if (ampfac == 1.0)
 		{
 			printf("ERROR: an ampfac of 1 creates an outfile "
-						 " identicle to the infile\n");
+			       "       identicle to the infile\n");
 			return 1;
 		}
 	}	
@@ -142,10 +142,10 @@ int main(int argc, char**argv)
 	if(size<limit)
 	{
 		printf("ERROR: infile size is less than the copy limit.\n"
-					 "infile:\t%s\n"
-					 "infile size:\t%d frames\n"
-					 "copy limit:\t%d frames\n"
-					 ,argv[ARG_INFILE], size, limit);
+		       "infile:\t%s\n"
+		       "infile size:\t%d frames\n"
+		       "copy limit:\t%d frames\n",
+		        argv[ARG_INFILE], size, limit);
 		error++;
 		goto exit;
 	}
@@ -170,8 +170,8 @@ int main(int argc, char**argv)
 	if (outformat == PSF_FMT_UNKNOWN)
 	{
 		printf("Outfile name \"%s\" has unknown format.\n"
-					 "Use any of .wav .aiff .aif .afc .aifc\n",
-					 argv[ARG_OUTFILE]);
+		       "Use any of .wav .aiff .aif .afc .aifc\n",
+		        argv[ARG_OUTFILE]);
 		error++;
 		goto exit;
 	}
@@ -285,7 +285,7 @@ int main(int argc, char**argv)
 				peaks[i].val = 1.0e-4;
 			peakDB = log10(peaks[i].val);
 			printf("CH %ld:\t%.4f\t(%.4f dB) at %.4f secs\n",
-							i+1, peaks[i].val, peakDB, peaktime);	
+			        i+1, peaks[i].val, peakDB, peaktime);	
 		}
 	}
 	

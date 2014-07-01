@@ -29,8 +29,8 @@ int main(int argc, char**argv)
 	if (argc!=ARG_NARGS)
 	{
 		printf("insufficient arguments.\n"
-					 "USAGE:\tsfnorm infile outfile buffer dBval\n" 
-					 "dBval must be <= 0\n"); 
+		       "USAGE:\tsfnorm infile outfile buffer dBval\n" 
+		       "dBval must be <= 0\n"); 
 		return 1;
 	}
 	
@@ -99,8 +99,8 @@ int main(int argc, char**argv)
 	if (outformat == PSF_FMT_UNKNOWN)
 	{
 		printf("Outfile name \"%s\" has unknown format.\n"
-					 "Use any of .wav .aiff .aif .afc .aifc\n",
-					 argv[ARG_OUTFILE]);
+		       "Use any of .wav .aiff .aif .afc .aifc\n",
+		        argv[ARG_OUTFILE]);
 		error++;
 		goto exit;
 	}
@@ -232,7 +232,7 @@ int main(int argc, char**argv)
 				peaks[i].val = 1.0e-4;
 			peakDB = log10(peaks[i].val);
 			printf("CH %ld:\t%.4f\t(%.4f dB) at %.4f secs\n",
-							i+1, peaks[i].val, peakDB, peaktime);	
+			        i+1, peaks[i].val, peakDB, peaktime);	
 		}
 	}
 	
