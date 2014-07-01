@@ -1,11 +1,12 @@
 /* envx.c: extract amplitude envelope from mono soundfile */ 
-/* USAGE: envx [-wN] infile outfile */ 
+/* USAGE: envx [-wN] [-n] insndfile outfile.brk */ 
 #include <stdio.h>
 #include <stdlib.h>
 #include <portsf.h>
 #include <breakpoints.h>
 #include <math.h>
 #define DEFAULT_WINDOW_MSECS 15
+#define max(x,y) ((x) > (y) ? (x) : (y))
 
 enum {ARG_PROGNAME, ARG_INFILE, ARG_OUTFILE, ARG_NARGS};
 
@@ -15,10 +16,13 @@ int main(int argc, char**argv)
 	long framesread, /* number of frames copied to buffer */ 
 	     totalread; /* running count of sample frames */
 	unsigned long npoints; /* number of breakpoints generated */
-	unsigned long winsize;
+	unsigned long winsize; /* number of infile buffer frames */
 	char flag;
 	double brktime; /* holds the time for the current breakpoint time */
-	double windur = DEFAULT_WINDOW_MSECS;
+	double windur = DEFAULT_WINDOW_MSECS; /* time duration of infile buffer */
+	int insize; /* size of the infile in frames */
+	int brktotal; /* total number of expected breakpoints */
+	int isnorm=0; /* -n option for normalizing breakpoints */
 
 	/* init all resource vals to default states */ 
 	int ifd=-1; 
@@ -40,14 +44,16 @@ int main(int argc, char**argv)
 				case('\0'):
 					printf("ERROR: missing flag name.\n");
 					return 1;
-				case('w'):
-					windur = atof(&argv[1][2]);
+				case('w'): windur = atof(&argv[1][2]);
 					if (windur <= 0.0)
 					{
 						printf("ERROR: bad value for window duration\n"
 						       "       must be positive\n");
 						return 1;	
 					}
+					break;
+				case('n'):
+					isnorm = 1;
 					break;
 				default:
 					break;
@@ -60,9 +66,10 @@ int main(int argc, char**argv)
 	if (argc!=ARG_NARGS)
 	{
 		printf("ERROR:\tinsufficient arguments.\n"
-					 "USAGE:\tenvx [-wN] insndfile outfile.brk\n"
-		       "-wN: set extraction window size to N msecs.\n"
-		       "(default: 15)\n"
+		       "USAGE:\tenvx [-wN] [-n] insndfile outfile.brk\n"
+		       "      \t-wN: set extraction window size to N msecs.\n"
+		       "      \t(default: 15)\n"
+		       "      \t-n: normalize breakpoint values to 1\n"
 		      );
 		return 1;
 	}
@@ -120,7 +127,27 @@ int main(int argc, char**argv)
 
 	/* set buffersize to the required envelope window size */
 	windur /= 1000.0; /* convert to secs */
+
+	/* check if window duration is smaller than duration between two samples */
+	if (windur < 1./inprops.srate)
+	{
+		printf("ERROR: window size cannot be smaller than the\n"
+		       "       time length between two sample frames.\n"); 
+		error++;
+		goto exit;
+	}
+
 	winsize = (unsigned long)(windur * inprops.srate); /* number of frames */
+
+	//TODO normalize breakpoint values
+	if (isnorm)
+	{
+		printf("normal option initiated.\n");
+		insize = psf_sndSize(ifd);
+		brktotal = insize/winsize + 1;
+
+		/* allocate space for peak info */ 
+	}
 
 	/* allocate memory for infile buffer */
 	inbuffer= (float*)malloc(winsize * sizeof(float));
@@ -169,19 +196,29 @@ int main(int argc, char**argv)
 		error++;
 	}
 	else
-		printf("\nDone: %d errors\n"
+		printf("\nDone: %d error%s\n"
 		       "breakpoint file created: %s\n"
 		       "breakpoints written: %lu\n",
-						error, argv[ARG_OUTFILE], npoints
+						error, (error==1)?"":"s", argv[ARG_OUTFILE], npoints
 		      );
 
 	/* do all the cleanup */
 	exit:
 	if (ifd>=0)
-		psf_sndClose(ifd);
+		if(psf_sndClose(ifd))
+			printf("envx: failed to close infile: %s\n",argv[ARG_INFILE]);
 	if (fp)
 		if(fclose(fp))
-			printf("envx: failed to close breakpoint file: %s\n",argv[ARG_OUTFILE]);
+			printf("\nenvx: failed to close breakpoint file: %s\n",argv[ARG_OUTFILE]);
+		else if (error)
+		{
+			printf("\nThere was an error while processing the breakpoint file.\n"
+			       "Deleting outfile: %s ...\n", argv[ARG_OUTFILE]);
+			if (remove(argv[ARG_OUTFILE]))
+				printf("Error: failed to delete %s\n", argv[ARG_OUTFILE]);
+			else
+				printf("%s successfully deleted.\n",argv[ARG_OUTFILE]);
+		}
 	if (inbuffer)
 		free(inbuffer);
 	psf_finish();
