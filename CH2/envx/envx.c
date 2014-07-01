@@ -138,10 +138,21 @@ int main(int argc, char**argv)
 
 	winsize = (unsigned long)(windur * inprops.srate); /* number of frames */
 
-	//TODO normalize breakpoint values
 	if (isnorm)
 	{
 		peak = psf_sndPeakValue(ifd,&inprops);
+		if (peak<0)
+		{
+			printf("Error normalizing breakpoints: peak value cannot be read from soundfile.\n");
+			error++;
+			goto exit;
+		}
+		if (peak==0.0)
+		{
+			printf("ERROR: soundfile is silent!\n");
+			error++;
+			goto exit;
+		}
 		scalefac = 1.0/peak;	
 	}
 
