@@ -13,4 +13,10 @@ typedef struct t_oscil
 	double incr;	
 }	OSCIL;
 
+/*** wave function prototypes ***/
 
+/* a combined OSCIL creation and initialization function */
+OSCIL* new_oscil(unsigned long srate);
+
+/* sample generation for OSCIL type */
+double sinetick(OSCIL* p_osc, double freq);
