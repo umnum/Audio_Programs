@@ -18,5 +18,17 @@ typedef struct t_oscil
 /* a combined OSCIL creation and initialization function */
 OSCIL* new_oscil(unsigned long srate);
 
-/* sample generation for OSCIL type */
+/* tick function for a sine waveform */
 double sinetick(OSCIL* p_osc, double freq);
+
+/* tick function for a square waveform */
+double sqtick(OSCIL* p_osc, double freq);
+
+/* tick function for a downward sawtooth waveform */
+double sawdtick(OSCIL* p_osc, double freq);
+
+/* tick function for an upward sawtooth waveform */
+double sawutick(OSCIL* p_osc, double freq);
+
+/* tick function for a triangle waveform */
+double tritick(OSCIL* p_osc, double freq);
