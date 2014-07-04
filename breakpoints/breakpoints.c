@@ -203,3 +203,13 @@ BRKSTREAM* bps_newstream(FILE* fp, unsigned long srate, unsigned long* size)
 		*size = stream->npoints;
 	return stream;
 }
+
+/* frees any internal memory in the breakpoint stream */
+void bps_freepoints(BRKSTREAM* stream)
+{
+	if (stream && stream->points)
+	{
+		free(stream->points);
+		stream->points = NULL;
+	}
+}
