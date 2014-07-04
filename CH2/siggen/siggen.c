@@ -20,7 +20,8 @@ int main (int argc, char**argv)
 	double amp, freq, dur, peakdiff;
 	unsigned long nbufs, outframes, remainder, nframes;
 	psf_format outformat = PSF_FMT_UNKNOWN;
-	int wavetype;
+	int wavetype=-1;
+	float wavevalue;
 	int nchans;
 	double (*tick)(OSCIL*,double);
 
@@ -212,8 +213,11 @@ int main (int argc, char**argv)
 		if ((i == (nbufs-1)) && remainder)
 			nframes = remainder;
 		for (j=0; j < nframes; j++)
+		{
+			wavevalue = (float)(amp * tick(p_osc,freq));
 			for (i_out=0; i_out < outprops.chans; i_out++)
-				outbuf[j*outprops.chans+i_out] = (float)(amp * tick(p_osc,freq)); 
+				outbuf[j*outprops.chans+i_out] = wavevalue; 
+		}
 		if (psf_sndWriteFloatFrames(ofd,outbuf,nframes)!=nframes)
 		{
 			printf("Error writing to outfile\n");
