@@ -49,3 +49,6 @@ BRKSTREAM* bps_newstream(FILE* fp, unsigned long srate, unsigned long* size);
 
 /* frees any internal memory in the breakpoint stream */
 void bps_freepoints(BRKSTREAM* stream);
+
+/* grab the current value from the breakpoint stream */
+double bps_tick(BRKSTREAM* stream);

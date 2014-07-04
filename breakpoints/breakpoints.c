@@ -213,3 +213,39 @@ void bps_freepoints(BRKSTREAM* stream)
 		stream->points = NULL;
 	}
 }
+
+/* grab the current value from the breakpoint stream */
+double bps_tick(BRKSTREAM* stream)
+{
+	double thisval, frac;	
+
+	/* beyond end of breakpoint data? */
+	if (stream->more_points==0)
+		return stream->rightpoint.value;
+	if (stream->width==0)
+		thisval = stream->rightpoint.value;	
+	else
+	{
+		/* get value from this span using linear interpolation */
+		frac = (stream->curpos - stream->leftpoint.time)/stream->width;
+		thisval = stream->leftpoint.value + (stream->height * frac); 
+	}
+	/* move up ready for next sample */
+	stream->curpos += stream->incr;	
+	if (stream->curpos > stream.rightpoint.time)
+	{
+		/* need to go to next span? */	
+		stream->ileft++; stream->iright++;	
+		if (stream->iright < stream->npoints)
+		{
+			stream->leftpoint = stream->points[stream->ileft];
+			stream->rightpoint = stream->points[stream->iright];
+			stream->width = stream->rightpoint.time - stream->leftpoint.time;
+			stream->height = stream->rightpoint.value - stream->leftpoint.value;	
+		}
+		else
+			stream->more_points = 0;
+	}
+
+	return thisval;
+}
