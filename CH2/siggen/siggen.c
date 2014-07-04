@@ -23,8 +23,7 @@ int main (int argc, char**argv)
 	int wavetype=-1;
 	float wavevalue;
 	int nchans;
-	double (*tick)(OSCIL*,double);
-
+	tickfunc tick;
 	/* init resource values */
 	int ofd=-1;
 	int error=0;

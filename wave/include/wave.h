@@ -13,6 +13,10 @@ typedef struct t_oscil
 	double incr;	
 }	OSCIL;
 
+/*** define a pointer to a tick function ***/
+typedef double (*tickfunc)(OSCIL* osc, double freq);
+
+
 /*** wave function prototypes ***/
 
 /* a combined OSCIL creation and initialization function */
