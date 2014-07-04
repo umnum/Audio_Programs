@@ -55,7 +55,7 @@ double sqtick(OSCIL* p_osc, double freq)
 	if (p_osc->curphase >= TWOPI)
 		p_osc->curphase -= TWOPI;
 	if (p_osc->curphase < 0.0)
-		p_osc-> += TWOPI;
+		p_osc->curphase += TWOPI;
 
 	return val;
 }

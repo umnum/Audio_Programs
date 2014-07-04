@@ -122,7 +122,7 @@ int main (int argc, char**argv)
 		default:
 			wavetype = -1;		
 	}
-	if (wavetype<1)
+	if (wavetype<0)
 	{
 		printf("ERROR: you have chosen an unknown wavetype.\n"
 		       "wavetypes: sine, square, triangle, sawtooth_up, sawtooth_down\n"
