@@ -154,3 +154,52 @@ double val_at_brktime(const BREAKPOINT* points, unsigned long npoints, unsigned 
 
 	return val;
 }	
+
+/* create a stream of breakpoint values from a breakpoint file */ 
+BRKSTREAM* bps_newstream(FILE* fp, unsigned long srate, unsigned long* size)
+{
+	BRKSTREAM* stream;
+	BREAKPOINT* points;
+	unsigned long npoints;
+	
+	if (srate==0)
+	{
+		printf("Error creating stream - sample rate cannot be zero.\n");
+		return NULL;
+	}
+
+	stream = (BRKSTREAM*)malloc(sizeof(BRKSTREAM));
+	if (stream==NULL)
+		return NULL;
+	/* load breakpoint file and setup stream info */
+	points = get_breakpoints(fp,&npoints);
+	if (points == NULL)
+	{
+		free(stream);
+		return NULL;
+	}
+	if (stream->npoints<2)
+	{
+		printf("breakpoint file is too small - "
+		       "at least two points required\n");
+		free(stream);
+		return(NULL);	
+	}
+	/* init the stream object */
+	stream->points = points;
+	stream->npoints = npoints;
+	/* counters */
+	stream->curpos = 0.0;
+	stream->ileft = 0;
+	stream->iright = 1;
+	stream->incr = 1.0/srate;
+	/* first span */
+	stream->leftpoint = stream->points[stream->ileft];
+	stream->rightpoint = stream->points[stream->iright];
+	stream->width = stream->rightpoint.time - stream->leftpoint.time;
+	stream->height = stream->rightpoint.value - stream->leftpoint.value;
+	stream->more_points = 1;
+	if (size)
+		*size = stream->npoints;
+	return stream;
+}
