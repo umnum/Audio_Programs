@@ -10,6 +10,22 @@ typedef struct breakpoint
 }	BREAKPOINT;
 
 
+/***** BRKSTREAM type definition *****/
+
+typedef struct breakpoint_stream
+{
+	BREAKPOINT* points;
+	BREAKPOINT leftpoint, rightpoint;
+	unsigned long npoints;
+	double curpos;
+	double incr;
+	double width;
+	double height;
+	unsigned long ileft, iright;
+	int more_points;	
+} BRKSTREAM;
+
+
 /***** breakpoint function prototypes *****/
 
 /* gather breakpoint data from a file */
