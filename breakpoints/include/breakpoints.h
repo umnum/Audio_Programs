@@ -43,3 +43,16 @@ int inrange(const BREAKPOINT* points, double minval, double maxval, unsigned lon
 
 /* find a value for a given time using an array of breakpoints */
 double val_at_brktime(const BREAKPOINT* points, unsigned long npoints, unsigned long *pointnum, double time);
+
+/* create a stream of breakpoint values from a breakpoint file */ 
+BRKSTREAM* bps_newstream(FILE* fp, unsigned long srate, unsigned long* size);
+
+/* frees any internal memory in the breakpoint stream */
+void bps_freepoints(BRKSTREAM* stream);
+
+/* grab the current value from the breakpoint stream */
+double bps_tick(BRKSTREAM* stream);
+
+/* get the minimum and maximum value in a breakpoint stream
+   return 0 for success, return 1 for faliure */
+int bps_getminmax(BRKSTREAM* stream, double* min, double* max);
