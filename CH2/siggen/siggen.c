@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <portsf.h>
 #include <wave.h>
+#include <breakpoints.h>
 #define NFRAMES 100 // size of buffer
 
 enum {ARG_PROGNAME, ARG_OUTFILE, ARG_TYPE,
@@ -23,12 +24,18 @@ int main (int argc, char**argv)
 	int wavetype=-1;
 	float wavevalue;
 	int nchans;
+	double minval, maxval;	
 	tickfunc tick;
 	/* init resource values */
 	int ofd=-1;
 	int error=0;
 	float* outbuf = NULL;  /* buffer for outfile */
 	OSCIL* p_osc = NULL;  /* sinewave oscillator */
+	BRKSTREAM* ampstream = NULL; /* breakpoint stream of amplitude values */
+	BRKSTREAM* freqstream = NULL; /* breakpoint stream of frequency values */
+	FILE* fpamp = NULL;
+	FILE* fpfreq = NULL;	
+	unsigned long brkampSize = 0;
 	
 	printf("SIGGEN: generate a simple sine wave oscillator\n");
 
@@ -39,8 +46,10 @@ int main (int argc, char**argv)
 		       "       wavetype:  sine, triangle, square, sawtooth_up, sawtooth_down\n" 
 		       "       duration:  duration of outfile (seconds)\n"
 		       "       srate:     required sample rate of outfile\n"
-		       "       amp:       amplitude (0 < amp <= 1.0)\n"
-		       "       freq:      frequency (freq > 0 )\n"
+		       "       amp:       amplitude value or breakpoint file\n"
+		       "                  (0 < amp <= 1.0)\n"
+		       "       freq:      frequency value or breakpoint file\n"
+		       "                  (freq > 0 )\n"
 		      );
 		return 1;
 	}
@@ -157,20 +166,71 @@ int main (int argc, char**argv)
 		return 1;
 	}
 
-	/* get the peak amplitude of the soundfile */
-	amp = atof(argv[ARG_AMP]);
-	if (amp<=0.0)
+	/* open breakpoint file, or set constant amplitude */ 
+	fpamp = fopen(argv[ARG_AMP],"r"); 
+	if (fpamp==NULL)
 	{
-		printf("ERROR: amplitude must be positive.\n");
-		return 1;
+		amp = atof(argv[ARG_AMP]);
+		if (amp<=0.0 || amp>1.0)
+		{
+			printf("ERROR: amplitude value out of range.\n"
+			       "       0.0 < amp <= 1.0\n"
+			      );
+			return 1;
+		}
+	}
+	else
+	{
+		ampstream = bps_newstream(fpamp,outprops.srate,&brkampSize);
+		if (ampstream==NULL)
+		{
+			printf("ERROR: unable to obtain breakpoints from \"%s\"\n",
+							argv[ARG_AMP]);
+			error++;
+			goto exit;
+		}
+		if (bps_getminmax(ampstream,&minval,&maxval))
+		{
+			printf("Error reading range of breakpoint file \"%s\"\n",
+			        argv[ARG_AMP]);
+			error++;
+			goto exit;
+		}
+		if (minval < 0.0 || minval > 1.0 || maxval < 0.0 || maxval > 1.0)
+		{
+			printf("Error: amplitude values out of range in file \"%s\"\n"
+			       "       0.0 < amp <= 1.0\n",
+			        argv[ARG_AMP]);
+			error++;
+			goto exit;
+		}
 	}
 
-	/* get the frequency value */
-	freq = atof(argv[ARG_FREQ]);
-	if (freq<=0.0)
+	/** at this point we may have gathered resources 
+	    we henceforth use goto upon hitting any errors **/
+
+	/* open breakpoint file, or set constant frequency */
+	fpfreq = fopen(argv[ARG_FREQ],"r");
+	if (fpfreq==NULL)
 	{
-		printf("ERROR: frequency must be positive.\n");
-		return 1;
+		freq = atof(argv[ARG_FREQ]);
+		if (freq<=0.0)
+		{
+			printf("ERROR: frequency must be positive.\n");
+			error++;
+			goto exit;
+		}
+	}
+	else
+	{
+		freqstream = bps_newstream(fpfreq,outprops.srate,&brkampSize);
+		if (freqstream==NULL)
+		{
+			printf("ERROR: unable to obtain breakpoint from \"%s\"\n",
+			        argv[ARG_FREQ]);
+			error++;
+			goto exit;
+		}
 	}
 
 	/* start portsf */
@@ -180,11 +240,9 @@ int main (int argc, char**argv)
 	if (ofd<0)
 	{
 		printf("ERROR: unable to create outfile: %s\n",argv[ARG_OUTFILE]);
-		return 1;
+		error++;
+		goto exit;
 	}
-
-	/** at this point we have gathered resources 
-	    we henceforth use goto upon hitting any errors **/
 
 	/* initialize sinewave oscillator */
 	p_osc = new_oscil(outprops.srate);
@@ -213,6 +271,10 @@ int main (int argc, char**argv)
 			nframes = remainder;
 		for (j=0; j < nframes; j++)
 		{
+			if (ampstream)
+				amp = bps_tick(ampstream);	
+			if (freqstream)
+				freq = bps_tick(freqstream);
 			wavevalue = (float)(amp * tick(p_osc,freq));
 			for (i_out=0; i_out < outprops.chans; i_out++)
 				outbuf[j*outprops.chans+i_out] = wavevalue; 
@@ -227,11 +289,15 @@ int main (int argc, char**argv)
 
 	/* make sure peak amplitude roughly matches the
 	   user requested amplitude */
-	peakdiff = amp-psf_sndPeakValue(ofd,&outprops);
+	if (ampstream==NULL)
+		peakdiff = amp-psf_sndPeakValue(ofd,&outprops);
+	else
+		peakdiff = maxval-psf_sndPeakValue(ofd,&outprops);
 	if ((peakdiff>.0001) || (peakdiff<-.0001))
 	{
 		printf("ERROR: unable to generate the correct peak\n"
 		       "       amplitude for %s\n", argv[ARG_OUTFILE]); 	
+		printf("amp = %lf\tpeakamp = %lf\n", amp, psf_sndPeakValue(ofd,&outprops));
 		error++;
 	}
 
@@ -257,9 +323,31 @@ int main (int argc, char**argv)
 				printf("%s successfully deleted.\n", argv[ARG_OUTFILE]);
 		}
 	if (outbuf)
+	{
 		free(outbuf);
+		outbuf=NULL;
+	}
 	if (p_osc)
+	{
 		free(p_osc);
+		p_osc=NULL;
+	}
+	if (ampstream)
+		bps_freepoints(ampstream);
+	if (freqstream)
+		bps_freepoints(freqstream);
+	if (fpamp)
+		if (fclose(fpamp))
+		{
+			printf("Error closing breakpoint file \"%s\"\n",
+			        argv[ARG_AMP]);
+		}
+	if (fpfreq)
+		if (fclose(fpfreq))
+		{
+			printf("Error closing breakpoint file \"%s\"\n",
+			        argv[ARG_FREQ]);
+		}
 	psf_finish();
 
 	return error;	
