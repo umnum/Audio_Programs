@@ -179,7 +179,7 @@ BRKSTREAM* bps_newstream(FILE* fp, unsigned long srate, unsigned long* size)
 		free(stream);
 		return NULL;
 	}
-	if (stream->npoints<2)
+	if (npoints<2)
 	{
 		printf("breakpoint file is too small - "
 		       "at least two points required\n");
