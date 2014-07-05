@@ -261,9 +261,9 @@ int bps_getminmax(BRKSTREAM* stream, double* min, double* max)
 		return 1;
 
 	unsigned long i;
-	*min = 0.0;
-	*max = 0.0;
-	for (i=0; i < stream->npoints; i++)	
+	*min = stream->points[0].value;
+	*max = stream->points[0].value;
+	for (i=1; i < stream->npoints; i++)	
 	{
 		if (stream->points[i].value < *min)
 			*min = stream->points[i].value;
