@@ -4,7 +4,7 @@ OBJS = siggen.o
 EXE = siggen
 CC = gcc
 CFLAGS = -c
-LFLAGS = -lportsf -lwave -lm
+LFLAGS = -lportsf -lwave -lbreakpoints -lm
 
 build: $(OBJS)
 	$(CC) $(OBJS) -o $(EXE) $(LFLAGS)
