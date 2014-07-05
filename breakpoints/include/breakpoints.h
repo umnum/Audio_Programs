@@ -52,3 +52,7 @@ void bps_freepoints(BRKSTREAM* stream);
 
 /* grab the current value from the breakpoint stream */
 double bps_tick(BRKSTREAM* stream);
+
+/* get the minimum and maximum value in a breakpoint stream
+   return 0 for success, return 1 for faliure */
+int bps_getminmax(BRKSTREAM* stream, double* min, double* max);

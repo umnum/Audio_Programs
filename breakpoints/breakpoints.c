@@ -155,7 +155,8 @@ double val_at_brktime(const BREAKPOINT* points, unsigned long npoints, unsigned 
 	return val;
 }	
 
-/* create a stream of breakpoint values from a breakpoint file */ 
+/* create a stream of breakpoint values from a breakpoint file 
+   initialize stream counter and increment value */ 
 BRKSTREAM* bps_newstream(FILE* fp, unsigned long srate, unsigned long* size)
 {
 	BRKSTREAM* stream;
@@ -248,4 +249,26 @@ double bps_tick(BRKSTREAM* stream)
 	}
 
 	return thisval;
+}
+
+/* get the minimum and maximum value in a breakpoint stream
+   return 0 for success, return 1 for faliure */
+int bps_getminmax(BRKSTREAM* stream, double* min, double* max)
+{
+	/* either no breakpoint stream or 
+	   there are less than two breakpoints */
+	if (stream==NULL || npoints < 2)
+		return 1;
+
+	unsigned long i;
+	*min = 0.0;
+	*max = 0.0;
+	for (i=0; i < stream->npoints; i++)	
+	{
+		if (stream->points[i].value < min)
+			*min = stream->points[i].value;
+		if (stream->points[i].value > max
+			*max = stream->points[i].value;	
+	}
+	return 0;
 }
