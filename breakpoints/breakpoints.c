@@ -233,7 +233,7 @@ double bps_tick(BRKSTREAM* stream)
 	}
 	/* move up ready for next sample */
 	stream->curpos += stream->incr;	
-	if (stream->curpos > stream.rightpoint.time)
+	if (stream->curpos > stream->rightpoint.time)
 	{
 		/* need to go to next span? */	
 		stream->ileft++; stream->iright++;	
@@ -257,7 +257,7 @@ int bps_getminmax(BRKSTREAM* stream, double* min, double* max)
 {
 	/* either no breakpoint stream or 
 	   there are less than two breakpoints */
-	if (stream==NULL || npoints < 2)
+	if (stream==NULL || stream->npoints < 2)
 		return 1;
 
 	unsigned long i;
@@ -265,9 +265,9 @@ int bps_getminmax(BRKSTREAM* stream, double* min, double* max)
 	*max = 0.0;
 	for (i=0; i < stream->npoints; i++)	
 	{
-		if (stream->points[i].value < min)
+		if (stream->points[i].value < *min)
 			*min = stream->points[i].value;
-		if (stream->points[i].value > max
+		if (stream->points[i].value > *max)
 			*max = stream->points[i].value;	
 	}
 	return 0;
