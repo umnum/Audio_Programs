@@ -1,5 +1,5 @@
 /* signal generator for a simple waveform */
-/* usage: siggen outsndfile wavetype duration srate nchans amp freq */ 
+/* usage: siggen [-sN] outsndfile wavetype duration srate nchans amp freq */ 
 #include <stdio.h>
 #include <stdlib.h>
 #include <portsf.h>
@@ -26,23 +26,82 @@ int main (int argc, char**argv)
 	int nchans;
 	double minval, maxval;	
 	tickfunc tick;
+	char option;
+	psf_stype samptype;	
+
 	/* init resource values */
 	int ofd=-1;
 	int error=0;
 	float* outbuf = NULL;  /* buffer for outfile */
-	OSCIL* p_osc = NULL;  /* sinewave oscillator */
+	OSCIL* p_osc = NULL;  /* waveform oscillator */
 	BRKSTREAM* ampstream = NULL; /* breakpoint stream of amplitude values */
 	BRKSTREAM* freqstream = NULL; /* breakpoint stream of frequency values */
 	FILE* fpamp = NULL;
 	FILE* fpfreq = NULL;	
 	unsigned long brkampSize = 0;
 	
-	printf("SIGGEN: generate a simple sine wave oscillator\n");
+	printf("SIGGEN: generate a simple waveform\n");
+
+	/* check for command-line options */
+	if (argc>1)
+	{
+		while (argv[1][0] == '-')
+		{
+			option = argv[1][1];
+			switch (option)
+			{
+				case('\0'):
+					printf("ERROR:   you did not specify an option\n"
+					       "options: -sN  select the format of the output sound file\n" 
+					       "              N = 16 (16-bit), 24 (24-bit), or 32 (32-bit)\n"
+					      );
+					return 1;
+				case('s'):
+					if (argv[1][2]=='\0')
+					{
+						printf("ERROR: you did not specify a format\n"
+						       "formats: 16 (16-bit), 24 (24-bit), or 32 (32-bit)\n",
+						        &argv[1][2]);
+						return 1;
+					}
+					samptype = atoi(&argv[1][2]);
+					if (samptype == 16)
+					{
+						samptype = PSF_SAMP_16;
+						break;
+					}	
+					if (samptype == 24)
+					{
+						samptype = PSF_SAMP_24;
+						break;
+					}
+					if (samptype == 32)
+					{
+						samptype = PSF_SAMP_32;
+						break;
+					}
+					printf("ERROR:   %s is not a valid format\n"
+					       "formats: 16 (16-bit), 24 (24-bit), or 32 (32-bit)\n",
+					        &argv[1][2]);
+					return 1;
+				default:
+					printf("ERROR: %s is not a valid option\n"
+					       "options: -sN  select the format of the output sound file\n" 
+					       "              N = 16 (16-bit), 24 (24-bit), or 32 (32-bit)\n",
+					        argv[1]);
+					return 1;
+			}
+			argc--;
+			argv++;
+		}
+	}
 
 	if (argc!=ARG_NARGS)
 	{
 		printf("ERROR: insufficient number of arguments.\n"
-		       "USAGE: siggen outsndfile wavetype duration srate nchans amp freq\n"
+		       "USAGE: siggen [-sN] outsndfile wavetype duration srate nchans amp freq\n"
+		       "       -sN:       select the format of the output sound file\n"
+		       "                  N = 16 (16-bit), 24 (24-bit), or 32 (32-bit)\n"
 		       "       wavetype:  sine, triangle, square, sawtooth_up, sawtooth_down\n" 
 		       "       duration:  duration of outfile (seconds)\n"
 		       "       srate:     required sample rate of outfile\n"
@@ -54,7 +113,7 @@ int main (int argc, char**argv)
 		return 1;
 	}
 
-	/* define outfile format - this sets 16-bit format */	
+	/* define outfile format */	
 	srate = atof(argv[ARG_SRATE]);		
 	if (srate<=0)
 	{
@@ -62,7 +121,7 @@ int main (int argc, char**argv)
 		return 1;
 	}
 	outprops.srate = srate;
-	outprops.samptype = PSF_SAMP_16;
+	outprops.samptype = samptype;
 	outprops.chformat = PSF_STDWAVE;
 	/* get outfile extension */
 	outformat = psf_getFormatExt(argv[ARG_OUTFILE]);
@@ -244,7 +303,7 @@ int main (int argc, char**argv)
 		goto exit;
 	}
 
-	/* initialize sinewave oscillator */
+	/* initialize waveform oscillator */
 	p_osc = new_oscil(outprops.srate);
 
 	/* calculate the number of frames for the soundfile */
