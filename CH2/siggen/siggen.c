@@ -229,6 +229,12 @@ int main (int argc, char**argv)
 	fpamp = fopen(argv[ARG_AMP],"r"); 
 	if (fpamp==NULL)
 	{
+		if (argv[ARG_AMP][0] >= 'a' && argv[ARG_AMP][0] <= 'z')
+		{
+			printf("ERROR: breakpoint file \"%s\" does not exist.\n",
+			        argv[ARG_AMP]);
+			return 1;
+		}
 		amp = atof(argv[ARG_AMP]);
 		if (amp<=0.0 || amp>1.0)
 		{
@@ -272,6 +278,13 @@ int main (int argc, char**argv)
 	fpfreq = fopen(argv[ARG_FREQ],"r");
 	if (fpfreq==NULL)
 	{
+		if (argv[ARG_FREQ][0] >= 'a' && argv[ARG_FREQ][0] <='z')
+		{
+			printf("ERROR: breakpoint file \"%s\" does not exist.\n",
+			        argv[ARG_FREQ]); 
+			error++;
+			goto exit;
+		}
 		freq = atof(argv[ARG_FREQ]);
 		if (freq<=0.0)
 		{
@@ -356,7 +369,6 @@ int main (int argc, char**argv)
 	{
 		printf("ERROR: unable to generate the correct peak\n"
 		       "       amplitude for %s\n", argv[ARG_OUTFILE]); 	
-		printf("amp = %lf\tpeakamp = %lf\n", amp, psf_sndPeakValue(ofd,&outprops));
 		error++;
 	}
 
