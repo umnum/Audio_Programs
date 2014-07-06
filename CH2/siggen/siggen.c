@@ -27,7 +27,7 @@ int main (int argc, char**argv)
 	double minval, maxval;	
 	tickfunc tick;
 	char option;
-	psf_stype samptype;	
+	psf_stype samptype = PSF_SAMP_16; /* outfile is set to 16-bit by default */	
 
 	/* init resource values */
 	int ofd=-1;
@@ -100,7 +100,7 @@ int main (int argc, char**argv)
 	{
 		printf("ERROR: insufficient number of arguments.\n"
 		       "USAGE: siggen [-sN] outsndfile wavetype duration srate nchans amp freq\n"
-		       "       -sN:       select the format of the output sound file\n"
+		       "       -sN:       select the format of the output sound file (16-bit by default)\n"
 		       "                  N = 16 (16-bit), 24 (24-bit), or 32 (32-bit)\n"
 		       "       wavetype:  sine, triangle, square, sawtooth_up, sawtooth_down\n" 
 		       "       duration:  duration of outfile (seconds)\n"
