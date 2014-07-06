@@ -28,6 +28,10 @@ double sinetick(OSCIL* p_osc, double freq);
 /* tick function for a square waveform */
 double sqtick(OSCIL* p_osc, double freq);
 
+/* tick function for a square waveform
+with dynamic pulse wave modulation */
+double pwmtick(OSCIL* p_osc, double freq, double pwmod);
+
 /* tick function for a downward sawtooth waveform */
 double sawdtick(OSCIL* p_osc, double freq);
 

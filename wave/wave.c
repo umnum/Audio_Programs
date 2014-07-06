@@ -55,6 +55,29 @@ double sqtick(OSCIL* p_osc, double freq)
 	return val;
 }
 
+/* tick function for a square waveform
+   with dynamic pulse wave modulation */
+double pwmtick(OSCIL* p_osc, double freq, double pwmod)
+{
+	double val;
+
+	UPDATE_FREQ;
+	val = (p_osc->curphase <= M_PI)?1.0:-1.0;	
+	p_osc->curphase += p_osc->incr;
+
+	if (pwmod < 1.0)
+		p_osc->curfreq *= 1.0;	
+	else if (pwmod > 0.99)
+		p_osc->curfreq *= 0.99;
+	else
+		p_osc->curfreq = pwmod;
+
+	if (p_osc->curphase >= TWOPI)
+		p_osc->curphase -= TWOPI;
+	if (p_osc->curphase < 0.0)
+		p_osc->curphase += TWOPI;
+}
+
 /* tick function for a downward sawtooth waveform */
 double sawdtick(OSCIL* p_osc, double freq)
 {
