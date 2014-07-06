@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <wave.h>
 #include <math.h>
+#define UPDATE_FREQ ( ( p_osc->curfreq!=freq) ? \
+                        p_osc->curfreq = freq, \
+                        p_osc->incr = p_osc->twopiovrsr * freq : 0 ) 
 
 /** wave oscil function definitions **/
 
@@ -26,11 +29,7 @@ double sinetick(OSCIL* p_osc, double freq)
 	double val;
 	
 	val = sin(p_osc->curphase);
-	if (p_osc->curfreq!=freq)
-	{
-		p_osc->curfreq = freq;
-		p_osc->incr = p_osc->twopiovrsr * freq;
-	}
+	UPDATE_FREQ;
 	p_osc->curphase += p_osc->incr;
 	if (p_osc->curphase >= TWOPI)
 		p_osc->curphase -= TWOPI;
@@ -45,11 +44,7 @@ double sqtick(OSCIL* p_osc, double freq)
 {
 	double val;
 	 	
-	if (p_osc->curfreq!=freq)
-	{
-		p_osc->curfreq = freq;
-		p_osc->incr = p_osc->twopiovrsr * freq;
-	} 
+	UPDATE_FREQ; 
 	val = (p_osc->curphase <= M_PI)?1.0:-1.0;	
 	p_osc->curphase += p_osc->incr;
 	if (p_osc->curphase >= TWOPI)
@@ -65,11 +60,7 @@ double sawdtick(OSCIL* p_osc, double freq)
 {
 	double val;
 
-	if (p_osc->curfreq!=freq)
-	{
-		p_osc->curfreq = freq;
-		p_osc->incr = p_osc->twopiovrsr * freq;
-	}
+	UPDATE_FREQ;	
 	val = 1.0 - 2.0 * (p_osc->curphase * (1.0 / TWOPI) ); 
 	p_osc->curphase += p_osc->incr;
 	if (p_osc->curphase >= TWOPI)
@@ -85,11 +76,7 @@ double sawutick(OSCIL* p_osc, double freq)
 {
 	double val;
 
-	if (p_osc->curfreq!=freq)
-	{
-		p_osc->curfreq = freq;
-		p_osc->incr = p_osc->twopiovrsr * freq;
-	}
+	UPDATE_FREQ;	
 	val = (2.0 * (p_osc->curphase * (1.0 / TWOPI) )) - 1.0;	
 	p_osc->curphase += p_osc->incr;
 	if (p_osc->curphase >= TWOPI)
@@ -105,11 +92,7 @@ double tritick(OSCIL* p_osc, double freq)
 {
 	double val;
 
-	if (p_osc->curfreq!=freq)
-	{
-		p_osc->curfreq = freq;
-		p_osc->incr = p_osc->twopiovrsr * freq;
-	}
+	UPDATE_FREQ;	
 	/* rectified sawtooth */
 	val = (2.0 * (p_osc->curphase * (1.0 / TWOPI) )) - 1.0;
 	if (val < 0.0)
