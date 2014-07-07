@@ -25,6 +25,7 @@ int main (int argc, char**argv)
 	float wavevalue;
 	int nchans;
 	int ispwval=0;
+	char* arg_pwmod; /* retains the name of the pwval breakpoint file */
 	double minval, maxval;	
 	tickfunc tick;
 	char option;
@@ -130,6 +131,7 @@ int main (int argc, char**argv)
 			}
 			/* make sure enum ARG values are aligned with command-line arguments */	
 			int argnum = ARG_PWMOD;
+			arg_pwmod = argv[ARG_PWMOD];
 			while (argnum != (ARG_NARGS+1))
 				argv[argnum] = argv[++argnum];
 		}
@@ -473,6 +475,8 @@ int main (int argc, char**argv)
 		bps_freepoints(ampstream);
 	if (freqstream)
 		bps_freepoints(freqstream);
+	if (pwmodstream)
+		bps_freepoints(pwmodstream);
 	if (fpamp)
 		if (fclose(fpamp))
 		{
@@ -484,6 +488,12 @@ int main (int argc, char**argv)
 		{
 			printf("Error closing breakpoint file \"%s\"\n",
 			        argv[ARG_FREQ]);
+		}
+	if (fppwmod)
+		if (fclose(fppwmod))
+		{
+			printf("Error closing breakpoint file \"%s\"\n",
+			        arg_pwmod);
 		}
 	psf_finish();
 
