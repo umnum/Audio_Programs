@@ -65,17 +65,19 @@ double pwmtick(OSCIL* p_osc, double freq, double pwmod)
 	val = (p_osc->curphase <= M_PI)?1.0:-1.0;	
 	p_osc->curphase += p_osc->incr;
 
-	if (pwmod < 1.0)
-		p_osc->curfreq *= 1.0;	
-	else if (pwmod > 0.99)
-		p_osc->curfreq *= 0.99;
+	if (pwmod < 1.0) /* if pwmod < 1%, set minimum frequency by a factor of 0.02 */
+		p_osc->curfreq *= 0.02;	
+	else if (pwmod > 99.0) /* if pwmod > 99%, set maximum frequency by a factor of 1.98 */
+		p_osc->curfreq *= 1.98;
 	else
-		p_osc->curfreq = pwmod;
+		p_osc->curfreq = pwmod/50.0; /* normal square wave is 50% */
 
 	if (p_osc->curphase >= TWOPI)
 		p_osc->curphase -= TWOPI;
 	if (p_osc->curphase < 0.0)
 		p_osc->curphase += TWOPI;
+
+	return val;
 }
 
 /* tick function for a downward sawtooth waveform */
