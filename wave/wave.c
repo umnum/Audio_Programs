@@ -76,6 +76,8 @@ double pwmtick(OSCIL* p_osc, double freq, double pwmod)
 		p_osc->curphase -= TWOPI;
 	if (p_osc->curphase < 0.0)
 		p_osc->curphase += TWOPI;
+
+	return val;
 }
 
 /* tick function for a downward sawtooth waveform */
