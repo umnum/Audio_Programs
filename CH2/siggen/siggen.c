@@ -1,5 +1,5 @@
 /* signal generator for a simple waveform */
-/* usage: siggen [-sN] outsndfile wavetype duration srate nchans amp freq */ 
+/* usage: siggen [-sN] outsndfile wavetype [pwval] duration srate nchans amp freq */ 
 #include <stdio.h>
 #include <stdlib.h>
 #include <portsf.h>
@@ -8,22 +8,23 @@
 #define NFRAMES 100 // size of buffer
 
 enum {ARG_PROGNAME, ARG_OUTFILE, ARG_TYPE,
-      ARG_DUR, ARG_SRATE, ARG_NCHANS, 
+      ARG_PWMOD, ARG_DUR=3, ARG_SRATE, ARG_NCHANS, 
       ARG_AMP, ARG_FREQ, ARG_NARGS};
 
 enum {WAVE_SINE, WAVE_TRIANGLE, WAVE_SQUARE,
-      WAVE_SAWUP, WAVE_SAWDOWN, WAVE_NTYPES};
+      WAVE_PWMOD, WAVE_SAWUP, WAVE_SAWDOWN, WAVE_NTYPES};
 
 int main (int argc, char**argv)
 {
 	PSF_PROPS outprops;
 	unsigned long srate;
-	double amp, freq, dur, peakdiff;
+	double amp, freq, pwval, dur, peakdiff;
 	unsigned long nbufs, outframes, remainder, nframes;
 	psf_format outformat = PSF_FMT_UNKNOWN;
 	int wavetype=-1;
 	float wavevalue;
 	int nchans;
+	int ispwval=0;
 	double minval, maxval;	
 	tickfunc tick;
 	char option;
@@ -36,9 +37,13 @@ int main (int argc, char**argv)
 	OSCIL* p_osc = NULL;  /* waveform oscillator */
 	BRKSTREAM* ampstream = NULL; /* breakpoint stream of amplitude values */
 	BRKSTREAM* freqstream = NULL; /* breakpoint stream of frequency values */
+	BRKSTREAM* pwmodstream = NULL; /* breakpoint stream of pwmod values */
 	FILE* fpamp = NULL;
 	FILE* fpfreq = NULL;	
+	FILE* fppwmod = NULL;
 	unsigned long brkampSize = 0;
+	unsigned long brkfreqSize = 0;
+	unsigned long brkpwmodSize = 0;
 	
 	printf("SIGGEN: generate a simple waveform\n");
 
@@ -97,28 +102,67 @@ int main (int argc, char**argv)
 	}
 
 	if (argc!=ARG_NARGS)
-	{
-		printf("ERROR: insufficient number of arguments.\n"
-		       "USAGE: siggen [-sN] outsndfile wavetype duration srate nchans amp freq\n"
-		       "       -sN:       select the format of the output sound file (16-bit by default)\n"
-		       "                  N = 16 (16-bit), 24 (24-bit), or 32 (32-bit)\n"
-		       "       wavetype:  sine, triangle, square, sawtooth_up, sawtooth_down\n" 
-		       "       duration:  duration of outfile (seconds)\n"
-		       "       srate:     required sample rate of outfile\n"
-		       "       amp:       amplitude value or breakpoint file\n"
-		       "                  (0 < amp <= 1.0)\n"
-		       "       freq:      frequency value or breakpoint file\n"
-		       "                  (freq > 0 )\n"
-		      );
-		return 1;
-	}
+		if (argc==(ARG_NARGS+1))
+		{
+			/* check if pwmod is specified */
+			fppwmod = fopen(argv[ARG_PWMOD], "r");
+			if (fppwmod==NULL)
+			{
+				if (argv[ARG_PWMOD][0] >='a' && argv[ARG_PWMOD][0] <= 'z') 
+				{
+					printf("Error opening breakpoint file \"%s\"\n",
+					        argv[ARG_PWMOD]);
+					return 1;
+				}
+				pwval = atof(argv[ARG_PWMOD]);
+				ispwval=1;
+			}
+			else
+		  {
+				pwmodstream = bps_newstream(fppwmod,atof(argv[ARG_SRATE+1]),&brkpwmodSize);
+				if (pwmodstream==NULL)
+				{
+					printf("ERROR: unable to obtain breakpoints from \"%s\"\n",
+									argv[ARG_PWMOD]);
+					error++;
+					goto exit;
+				}
+			}
+			/* make sure enum ARG values are aligned with command-line arguments */	
+			int argnum = ARG_PWMOD;
+			while (argnum != (ARG_NARGS+1))
+				argv[argnum] = argv[++argnum];
+		}
+		else
+		{
+			printf("ERROR: insufficient number of arguments.\n"
+						 "USAGE: siggen [-sN] outsndfile wavetype [pwval] duration srate nchans amp freq\n"
+						 "       -sN:       select the format of the output sound file (16-bit by default)\n"
+						 "                  N = 16 (16-bit), 24 (24-bit), or 32 (32-bit)\n"
+						 "       wavetype:  sine, triangle, square, pwmod, sawtooth_up, sawtooth_down\n" 
+						 "       pwval:     pulse wave percentage value or breakpoint file\n"
+						 "                  pwval must be selected only when the\n"
+						 "                  pwmod wavetype has been selected.\n"
+						 "       duration:  duration of outfile (seconds)\n"
+						 "       srate:     required sample rate of outfile\n"
+						 "       amp:       amplitude value or breakpoint file\n"
+						 "                  (0 < amp <= 1.0)\n"
+						 "       freq:      frequency value or breakpoint file\n"
+						 "                  (freq > 0 )\n"
+						);
+			return 1;
+		}
+
+	/** at this point we may have gathered resources 
+	    we henceforth use goto upon hitting any errors **/
 
 	/* define outfile format */	
 	srate = atof(argv[ARG_SRATE]);		
 	if (srate<=0)
 	{
 		printf("ERROR: sample rate must be positive.\n");
-		return 1;
+		error++;
+		goto exit;
 	}
 	outprops.srate = srate;
 	outprops.samptype = samptype;
@@ -141,7 +185,8 @@ int main (int argc, char**argv)
 	{
 		printf("ERROR: portsf does not support %d channels\n",
 		        nchans); 
-		return 1;
+		error++;
+		goto exit;
 	}
 	outprops.chans = nchans;	
 
@@ -154,6 +199,12 @@ int main (int argc, char**argv)
 			if ( (argv[ARG_TYPE][0]=='s')&&(argv[ARG_TYPE][1]=='i'&&
 					 (argv[ARG_TYPE][2]=='n')&& argv[ARG_TYPE][3]=='e')  ) 
 				wavetype = WAVE_SINE;
+			break;
+		case(5):
+			if ( (argv[ARG_TYPE][0]=='p')&&(argv[ARG_TYPE][1]=='w')&&
+			     (argv[ARG_TYPE][2]=='m')&&(argv[ARG_TYPE][3]=='o')&&
+			     (argv[ARG_TYPE][4]=='d')                             )
+				wavetype = WAVE_PWMOD;
 			break;
 		case(6):
 			if ( (argv[ARG_TYPE][0]=='s')&&(argv[ARG_TYPE][1]=='q')&&
@@ -193,11 +244,21 @@ int main (int argc, char**argv)
 	if (wavetype<0)
 	{
 		printf("ERROR: you have chosen an unknown wavetype.\n"
-		       "wavetypes: sine, square, triangle, sawtooth_up, sawtooth_down\n"
+		       "wavetypes: sine, square, pwmod, triangle, sawtooth_up, sawtooth_down\n"
 		      );
-		return 1;
+		error++;
+		goto exit;
 	}
 	
+	/* if user specifies pwval, make sure pwmod wavetype is selected */
+	if (pwmodstream||ispwval)
+		if (wavetype!=WAVE_PWMOD)
+		{
+			printf("ERROR: if you select a value for pwval,\n"
+			       "       you must select the pwmod wavetype.\n");
+			error++;
+			goto exit;
+		}
 	/* select waveform function */
 	switch (wavetype)
 	{
@@ -222,7 +283,8 @@ int main (int argc, char**argv)
 	if (dur<=0.0)
 	{
 		printf("ERROR: time duration must be positive.\n");
-		return 1;
+		error++;
+		goto exit;
 	}
 
 	/* open breakpoint file, or set constant amplitude */ 
@@ -233,7 +295,8 @@ int main (int argc, char**argv)
 		{
 			printf("ERROR: breakpoint file \"%s\" does not exist.\n",
 			        argv[ARG_AMP]);
-			return 1;
+			error++;
+			goto exit;
 		}
 		amp = atof(argv[ARG_AMP]);
 		if (amp<=0.0 || amp>1.0)
@@ -241,7 +304,8 @@ int main (int argc, char**argv)
 			printf("ERROR: amplitude value out of range.\n"
 			       "       0.0 < amp <= 1.0\n"
 			      );
-			return 1;
+			error++;
+			goto exit;
 		}
 	}
 	else
@@ -271,9 +335,6 @@ int main (int argc, char**argv)
 		}
 	}
 
-	/** at this point we may have gathered resources 
-	    we henceforth use goto upon hitting any errors **/
-
 	/* open breakpoint file, or set constant frequency */
 	fpfreq = fopen(argv[ARG_FREQ],"r");
 	if (fpfreq==NULL)
@@ -295,7 +356,7 @@ int main (int argc, char**argv)
 	}
 	else
 	{
-		freqstream = bps_newstream(fpfreq,outprops.srate,&brkampSize);
+		freqstream = bps_newstream(fpfreq,outprops.srate,&brkfreqSize);
 		if (freqstream==NULL)
 		{
 			printf("ERROR: unable to obtain breakpoint from \"%s\"\n",
@@ -347,7 +408,12 @@ int main (int argc, char**argv)
 				amp = bps_tick(ampstream);	
 			if (freqstream)
 				freq = bps_tick(freqstream);
-			wavevalue = (float)(amp * tick(p_osc,freq));
+			if (pwmodstream)
+				pwval = bps_tick(pwmodstream);
+			if (pwmodstream || ispwval )
+				wavevalue = (float)(amp * pwmtick(p_osc,freq,pwval));
+			else
+				wavevalue = (float)(amp * tick(p_osc,freq));
 			for (i_out=0; i_out < outprops.chans; i_out++)
 				outbuf[j*outprops.chans+i_out] = wavevalue; 
 		}
