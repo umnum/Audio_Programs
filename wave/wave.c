@@ -61,16 +61,16 @@ double pwmtick(OSCIL* p_osc, double freq, double pwmod)
 {
 	double val;
 
+	if (pwmod < 1.0) /* if pwmod < 1%, set minimum frequency by a factor of 0.02 */
+		freq *= 0.02;	
+	else if (pwmod > 99.0) /* if pwmod > 99%, set maximum frequency by a factor of 1.98 */
+		curfreq *= 1.98;
+	else
+		freq *= pwmod/50.0; /* normal square wave is 50% */
+
 	UPDATE_FREQ;
 	val = (p_osc->curphase <= M_PI)?1.0:-1.0;	
 	p_osc->curphase += p_osc->incr;
-
-	if (pwmod < 1.0) /* if pwmod < 1%, set minimum frequency by a factor of 0.02 */
-		p_osc->curfreq *= 0.02;	
-	else if (pwmod > 99.0) /* if pwmod > 99%, set maximum frequency by a factor of 1.98 */
-		p_osc->curfreq *= 1.98;
-	else
-		p_osc->curfreq = pwmod/50.0; /* normal square wave is 50% */
 
 	if (p_osc->curphase >= TWOPI)
 		p_osc->curphase -= TWOPI;
