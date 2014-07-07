@@ -111,7 +111,7 @@ int main (int argc, char**argv)
 			{
 				if (argv[ARG_PWMOD][0] >='a' && argv[ARG_PWMOD][0] <= 'z') 
 				{
-					printf("Error opening breakpoint file \"%s\"\n",
+					printf("Error: breakpoint file \"%s\" does not exist.\n",
 					        argv[ARG_PWMOD]);
 					return 1;
 				}
@@ -272,6 +272,15 @@ int main (int argc, char**argv)
 			break;
 		case(WAVE_SQUARE):
 			tick = sqtick;
+			break;
+		case(WAVE_PWMOD):
+			if (pwmodstream==NULL && !ispwval)
+			{
+				printf("ERROR: you didn't specify a pulse wave value "
+				       "or breakpoint file.\n");
+				error++;
+				goto exit;
+			}
 			break;
 		case(WAVE_SAWUP):
 			tick = sawutick;
