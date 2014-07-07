@@ -64,7 +64,7 @@ double pwmtick(OSCIL* p_osc, double freq, double pwmod)
 	if (pwmod < 1.0) /* if pwmod < 1%, set minimum frequency by a factor of 0.02 */
 		freq *= 0.02;	
 	else if (pwmod > 99.0) /* if pwmod > 99%, set maximum frequency by a factor of 1.98 */
-		curfreq *= 1.98;
+		freq *= 1.98;
 	else
 		freq *= pwmod/50.0; /* normal square wave is 50% */
 
