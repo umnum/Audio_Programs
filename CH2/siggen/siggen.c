@@ -24,11 +24,11 @@ int main (int argc, char**argv)
 	int wavetype=-1;
 	float wavevalue;
 	int nchans;
-	int ispwval=0;
+	int ispwval=0; /* flagged if pwval is a value and not a breakpoint file */
 	char* arg_pwmod; /* retains the name of the pwval breakpoint file */
-	double minval, maxval;	
-	tickfunc tick;
-	char option;
+	double minval, maxval; /* used for breakpoint amplitude values */	
+	tickfunc tick; /* point to the specified wavetype function */
+	char option; /* stores command line options */
 	psf_stype samptype = PSF_SAMP_16; /* outfile is set to 16-bit by default */	
 
 	/* init resource values */
@@ -39,12 +39,12 @@ int main (int argc, char**argv)
 	BRKSTREAM* ampstream = NULL; /* breakpoint stream of amplitude values */
 	BRKSTREAM* freqstream = NULL; /* breakpoint stream of frequency values */
 	BRKSTREAM* pwmodstream = NULL; /* breakpoint stream of pwmod values */
-	FILE* fpamp = NULL;
-	FILE* fpfreq = NULL;	
-	FILE* fppwmod = NULL;
-	unsigned long brkampSize = 0;
-	unsigned long brkfreqSize = 0;
-	unsigned long brkpwmodSize = 0;
+	FILE* fpamp = NULL; /* amplitude breakpoint file */
+	FILE* fpfreq = NULL; /* frequency breakpoint file */	
+	FILE* fppwmod = NULL; /* pulse width modulation breakpoint file */
+	unsigned long brkampSize = 0; /* number of amplitude breakpoints */
+	unsigned long brkfreqSize = 0; /* number of frequency breakpoints */
+	unsigned long brkpwmodSize = 0; /* number of pulse wave mod breakpoints */
 	
 	printf("SIGGEN: generate a simple waveform\n");
 
@@ -105,7 +105,7 @@ int main (int argc, char**argv)
 	if (argc!=ARG_NARGS)
 		if (argc==(ARG_NARGS+1))
 		{
-			/* check if pwmod is specified */
+			/* check if pwval is specified */
 			fppwmod = fopen(argv[ARG_PWMOD], "r");
 			if (fppwmod==NULL)
 			{
@@ -256,11 +256,12 @@ int main (int argc, char**argv)
 	if (pwmodstream||ispwval)
 		if (wavetype!=WAVE_PWMOD)
 		{
-			printf("ERROR: if you select a value for pwval,\n"
+			printf("ERROR: if you select a value or breakpoint file for pwval,\n"
 			       "       you must select the pwmod wavetype.\n");
 			error++;
 			goto exit;
 		}
+
 	/* select waveform function */
 	switch (wavetype)
 	{
