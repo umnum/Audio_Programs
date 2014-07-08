@@ -2,14 +2,13 @@
 #include <stdlib.h>
 #include <wave.h>
 #include <math.h>
-#define UPDATE_FREQ ( ( p_osc->curfreq!=freq) ? \
-                        p_osc->curfreq = freq, \
-                        p_osc->incr = p_osc->twopiovrsr * freq : 0 ) 
 
 /** wave oscil function definitions **/
 
-/* a combined OSCIL creation and initialization function */
-OSCIL* new_oscil(unsigned long srate)
+/* a combined OSCIL creation and initialization function 
+   the phase argument is a fraction between 0 and 1 which 
+   sets initial phase of the oscillator */
+OSCIL* new_oscil(unsigned long srate, double phase)
 {
 	OSCIL* p_osc;	
 	p_osc = (OSCIL*)malloc(sizeof(OSCIL));
@@ -17,7 +16,13 @@ OSCIL* new_oscil(unsigned long srate)
 		return NULL;
 	p_osc->twopiovrsr = TWOPI / (double) srate;
 	p_osc->curfreq = 0.0;
-	p_osc->curphase = 0.0;
+	/* make sure the inputted phase doesn't exceed the range */ 
+	if (phase > 1.0)
+		phase = phase - (int)phase;
+	if (phase < 0.0)
+		phase = (phase + (int)phase) * 1.0;
+	/* phase offset is from 0 to 2*PI */
+	p_osc->curphase = TWOPI*phase;
 	p_osc->incr = 0.0;
 
 	return p_osc;

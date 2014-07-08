@@ -1,5 +1,5 @@
 /* signal generator for a simple waveform */
-/* usage: siggen [-sN] outsndfile wavetype [pwval] duration srate nchans amp freq */ 
+/* usage: siggen [-sN] [-oN] outsndfile wavetype [pwval] duration srate nchans amp freq */ 
 #include <stdio.h>
 #include <stdlib.h>
 #include <portsf.h>
@@ -30,6 +30,9 @@ int main (int argc, char**argv)
 	tickfunc tick; /* point to the specified wavetype function */
 	char option; /* stores command line options */
 	psf_stype samptype = PSF_SAMP_16; /* outfile is set to 16-bit by default */	
+	double phase=0.0; /* fraction between 0 and 1 which sets the phase offset
+	                 default values match the direction of the sine wave
+	                 (i.e starting at zero, going positive)  */
 
 	/* init resource values */
 	int ofd=-1;
@@ -90,10 +93,29 @@ int main (int argc, char**argv)
 					       "formats: 16 (16-bit), 24 (24-bit), or 32 (32-bit)\n",
 					        &argv[1][2]);
 					return 1;
+				case('o'):
+					if (argv[1][2]=='\0')
+					{
+						printf("ERROR: you did not specify an offset\n"
+						       "USAGE: -oN   (0 <= N <= 1)\n"
+						      );
+						return 1;
+					}
+					if (!(argv[1][2] >= 'a' && argv[1][2]<='z'))
+					{
+						phase = atof(&argv[1][2]);
+						if (phase < 0.0)
+							phase = 0.0;
+						if (phase > 1.0)
+							phase = 1.0;
+						break;
+					}
 				default:
 					printf("ERROR: %s is not a valid option\n"
 					       "options: -sN  select the format of the output sound file\n" 
-					       "              N = 16 (16-bit), 24 (24-bit), or 32 (32-bit)\n",
+					       "              N = 16 (16-bit), 24 (24-bit), or 32 (32-bit)\n"
+					       "         -oN  select the offset of the oscillator\n"
+					       "              0 <= N <= 1\n",
 					        argv[1]);
 					return 1;
 			}
@@ -138,11 +160,17 @@ int main (int argc, char**argv)
 		else
 		{
 			printf("ERROR: insufficient number of arguments.\n"
-						 "USAGE: siggen [-sN] outsndfile wavetype [pwval] duration srate nchans amp freq\n"
+						 "USAGE: siggen [-sN] [-oN] outsndfile wavetype [pwval] duration srate nchans amp freq\n"
 						 "       -sN:       select the format of the output sound file (16-bit by default)\n"
 						 "                  N = 16 (16-bit), 24 (24-bit), or 32 (32-bit)\n"
+			       "       -oN:       select the offset of the oscillator\n"
+			       "                  0 <= N <= 1\n"
+			       "                  if you set N < 0, then N is set to 0\n"
+		         "                  if you set N > 1, then N is set to 1\n"
 						 "       wavetype:  sine, triangle, square, pwmod, sawtooth_up, sawtooth_down\n" 
 						 "       pwval:     pulse wave percentage value or breakpoint file\n"
+			       "                  modulation range is from 1%% to 99%%\n"
+			       "                  a normal square wave is 50%%\n" 
 						 "                  pwval must be selected only when the\n"
 						 "                  pwmod wavetype has been selected.\n"
 						 "       duration:  duration of outfile (seconds)\n"
@@ -267,12 +295,15 @@ int main (int argc, char**argv)
 	{
 		case(WAVE_SINE):
 			tick = sinetick;
+			phase += 0.0;
 			break;
 		case(WAVE_TRIANGLE):
 			tick = tritick;
+			phase += 0.75;
 			break;
 		case(WAVE_SQUARE):
 			tick = sqtick;
+			phase += 0.0;
 			break;
 		case(WAVE_PWMOD):
 			if (pwmodstream==NULL && !ispwval)
@@ -282,12 +313,15 @@ int main (int argc, char**argv)
 				error++;
 				goto exit;
 			}
+			phase += 0.0;
 			break;
 		case(WAVE_SAWUP):
 			tick = sawutick;
+			phase += 0.5;
 			break;
 		case(WAVE_SAWDOWN):
 			tick = sawdtick;
+			phase += 0.5;
 	}
 
 	/* get the time duration of the soundfile */
@@ -390,7 +424,7 @@ int main (int argc, char**argv)
 	}
 
 	/* initialize waveform oscillator */
-	p_osc = new_oscil(outprops.srate);
+	p_osc = new_oscil(outprops.srate, phase);
 
 	/* calculate the number of frames for the soundfile */
 	outframes = (unsigned long) (dur * outprops.srate + 0.5);

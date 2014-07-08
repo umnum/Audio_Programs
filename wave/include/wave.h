@@ -1,8 +1,11 @@
-/* wave.h header files */
+/* wave.h */
 #ifndef M_PI
 #define m_PI (3.1415926535897932)
 #endif
 #define TWOPI (2.0 * M_PI) 
+#define UPDATE_FREQ ( ( p_osc->curfreq!=freq) ? \
+                        p_osc->curfreq = freq, \
+                        p_osc->incr = p_osc->twopiovrsr * freq : 0 )
 
 /*** type definition for OSCIL ***/
 typedef struct t_oscil 
@@ -20,7 +23,7 @@ typedef double (*tickfunc)(OSCIL* osc, double freq);
 /*** wave function prototypes ***/
 
 /* a combined OSCIL creation and initialization function */
-OSCIL* new_oscil(unsigned long srate);
+OSCIL* new_oscil(unsigned long srate, double phase);
 
 /* tick function for a sine waveform */
 double sinetick(OSCIL* p_osc, double freq);
