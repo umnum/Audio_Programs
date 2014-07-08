@@ -18,9 +18,9 @@ OSCIL* new_oscil(unsigned long srate, double phase)
 	p_osc->curfreq = 0.0;
 	/* make sure the inputted phase doesn't exceed the range */ 
 	if (phase > 1.0)
-		phase = 1.0;
+		phase = phase - (int)phase;
 	if (phase < 0.0)
-		phase = 0.0;
+		phase = (phase + (int)phase) * 1.0;
 	/* phase offset is from 0 to 2*PI */
 	p_osc->curphase = TWOPI*phase;
 	p_osc->incr = 0.0;
