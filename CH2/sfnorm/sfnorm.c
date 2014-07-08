@@ -189,7 +189,7 @@ int main(int argc, char**argv)
 		
 		/* update copy status after refreshing the buffer every 100 times */
 		if (update%100==0)
-			printf("%ld samples copied...  %ld%\r",totalread,100*totalread/size);
+			printf("%ld samples copied...  %ld%%\r",totalread,100*totalread/size);
 
 		totalread+=framesread;
 	
