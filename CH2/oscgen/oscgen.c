@@ -6,6 +6,7 @@
 #include <portsf.h>
 #include <breakpoints.h>
 #include <wave.h>
+#define NFRAMES 100 // default frames for buffer
 
 enum {ARG_PROGNAME, ARG_OUTFILE, ARG_DUR, ARG_SRATE, ARG_CHANS,
       ARG_AMP, ARG_FREQ, ARG_TYPE, ARG_NOSCS, ARG_NARGS};
@@ -252,10 +253,59 @@ main (int argc, char* argv[])
 		}
 	}
 
-	//TODO switch statement for selecting wavetype
-	//     additive synthesis algorithm for each wavetype 
-  
 	//TODO allocate memory for resources
+	
+	/* allocate space for buffer */
+	buffer = (float*) malloc (outprops.chans * sizeof(float) * NFRAMES);
+	if (buffer == NULL)
+	{
+		puts("No memory!\n");
+		error++;
+		goto exit;
+	}	
+
+	/* create amp and freq arrays */
+	oscamps = (double*) malloc (noscs * sizeof(double));
+	if (oscamps == NULL)
+	{
+		puts("No memory!\n");
+		error++;
+		goto exit;
+	}	
+
+	oscfreqs = (double*) malloc (noscs * sizeof(double));
+	if (oscfreqs == NULL)
+	{
+		puts("No memory!\n");
+		error++;
+		goto exit;
+	}
+
+	/* create array of pointers to OSCILs */
+	oscs = (OSCIL**) malloc (noscs * sizeof(OSCIL *));
+	if (oscs == NULL)
+	{
+		puts("No memory!\n");
+		error++;
+		goto exit;
+	}
+
+	//TODO initialize arrays... 
+	//     switch statement for selecting wavetype
+	//     additive synthesis algorithm for each wavetype 
+
+	/* create each OSCIL */
+	int i;
+	for (i=0; i < noscs; i++)
+	{
+		oscs[i] = new_oscil(outprops.srate);
+		if (oscs[i] == NULL)
+		{
+			puts("No memory for oscillators.\n");
+			error++;
+			goto exit;
+		}
+	} 
 
 	//TODO process soundfile
 
