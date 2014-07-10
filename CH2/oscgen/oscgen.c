@@ -17,8 +17,8 @@ main (int argc, char* argv[])
 	//TODO declare variables
 	PSF_PROPS outprops; /* soundfile properties */
 	double dur, amp, freq, peakdiff; 
-	int chans; 
-	unsigned long srate, noscs;
+	double minval, maxval;
+	int chans, srate, noscs;
 	int wavetype = -1;
 	psf_format format = PSF_FMT_UNKNOWN;
 
@@ -34,6 +34,8 @@ main (int argc, char* argv[])
 	OSCIL **oscs = NULL;
 	double *oscamps = NULL,
 	       *oscfreqs = NULL;
+	unsigned long brkampSize = 0,
+	              brkfreqSize = 0;
 
 	printf("OSCGEN: basic oscillator bank for additive synthesis\n");
 
@@ -78,7 +80,7 @@ main (int argc, char* argv[])
 
 	/* get the number of channels */
 	chans = atoi(argv[ARG_CHANS]);
-	if (chans < STDWAVE || chans > MC_WAVE_EX) 
+	if (chans <= STDWAVE || chans > MC_WAVE_EX) 
 	{
 		printf("ERROR: portsf does not support %s channels\n",
 		        argv[ARG_CHANS]);
@@ -151,13 +153,14 @@ main (int argc, char* argv[])
 	/* we have gathered a resource at this point
 	   use goto upon hitting any errors */
 
-	//TODO get freq/amp values or breakpoint files	
-	
 	/* get amplitude value or breakpoint file */ 
-	fpamp = fopen(argv[ARG_AMP],"r")
+	fpamp = fopen(argv[ARG_AMP],"r");
 	if (fpamp == NULL)
 	{
-		if (argv[ARG_AMP][0] < '0' || argv[ARG_AMP][0] > '9') 
+		if ( (argv[ARG_AMP][0] < '0' || argv[ARG_AMP][0] > '9') && 
+		     (argv[ARG_AMP][0] != '.' && argv[ARG_AMP][0] != '-') || 
+		     (argv[ARG_AMP][0] == '.' && (argv[ARG_AMP][1] < '0' || argv[ARG_AMP][1] > '9')) ||  
+		     (argv[ARG_AMP][0] == '-' && (argv[ARG_AMP][1] < '0' || argv[ARG_AMP][1] > '9') && argv[ARG_AMP][1] != '.') )  
 		{
 			printf("Error: breakpoint file: \"%s\" does not exist\n",
 			        argv[ARG_AMP]);
@@ -175,7 +178,78 @@ main (int argc, char* argv[])
 	}
 	else
 	{
-	  //TODO gather breakpoint stream values	
+		ampstream = bps_newstream(fpamp,outprops.srate,&brkampSize); 
+		if (ampstream == NULL)
+		{
+			printf("Error: unable to obtain breakpoints from file \"%s\"\n",
+			        argv[ARG_AMP]);
+			error++;
+			goto exit;
+		}
+		if (bps_getminmax(ampstream,&minval,&maxval))
+		{
+			printf("Error reading range of breakpoint file \"%s\"\n",
+			        argv[ARG_AMP]);
+			error++;
+			goto exit; 
+		}
+		if (minval <= 0.0 || minval > 1.0 || maxval <= 0.0 || maxval > 1.0)
+		{
+			printf("Error: breakpoint amplitude values out of range in file \"%s\"\n"
+			       "       0.0 < amp <= 1.0\n",
+			        argv[ARG_AMP]);
+			error++;
+			goto exit; 
+		}
+	}
+
+	// get frequency value or breakpoint file	
+	fpfreq = fopen(argv[ARG_FREQ],"r");			
+	if (fpfreq == NULL)
+	{
+	if ( (argv[ARG_FREQ][0] < '0' || argv[ARG_FREQ][0] > '9') && 
+	     (argv[ARG_FREQ][0] != '.' && argv[ARG_FREQ][0] != '-') || 
+	     (argv[ARG_FREQ][0] == '.' && (argv[ARG_FREQ][1] < '0' || argv[ARG_FREQ][1] > '9')) ||  
+	     (argv[ARG_FREQ][0] == '-' && (argv[ARG_FREQ][1] < '0' || argv[ARG_FREQ][1] > '9') && argv[ARG_FREQ][1] != '.')  )  
+		{
+			printf("Error: breakpoint file \"%s\" does not exist.\n",
+			        argv[ARG_FREQ]);	
+			error++;
+			goto exit;
+		}
+		freq = atof(argv[ARG_FREQ]);
+		if (freq <= 0.0)
+		{
+			printf("Error: frequency must be positive.\n");
+			error++;
+			goto exit;
+		}
+	}
+	else
+	{
+		freqstream = bps_newstream(fpfreq,outprops.srate,&brkfreqSize);
+		if (freqstream == NULL)
+		{
+			printf("Error: unable to obtain breakpoints from file \"%s\"\n",
+			        argv[ARG_FREQ]);
+			error++;
+			goto exit;
+		}
+		if (bps_getminmax(freqstream,&minval,&maxval))
+		{
+			printf("Error reading range of breakpoint file \"%s\"\n",
+			        argv[ARG_FREQ]);
+			error++;
+			goto exit;
+		} 
+		if (minval < 0.0 || maxval < 0.0)
+		{
+			printf("Error: breakpoint frequency values out of range in file \"%s\"\n"
+			       "       freq >= 0.0\n",
+			        argv[ARG_FREQ]);	
+			error++;
+			goto exit;
+		}
 	}
 
 	//TODO switch statement for selecting wavetype
