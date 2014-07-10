@@ -7,6 +7,7 @@
 #include <breakpoints.h>
 #include <wave.h>
 #define NFRAMES 100 // default frames for buffer
+#define PHASE 0 // default oscillator offset is 0
 
 enum {ARG_PROGNAME, ARG_OUTFILE, ARG_DUR, ARG_SRATE, ARG_CHANS,
       ARG_AMP, ARG_FREQ, ARG_TYPE, ARG_NOSCS, ARG_NARGS};
@@ -19,8 +20,10 @@ main (int argc, char* argv[])
 	PSF_PROPS outprops; /* soundfile properties */
 	double dur, amp, freq, peakdiff; 
 	double minval, maxval;
+	double ampfac, freqfac, ampadjust;
 	int chans, srate, noscs;
 	int wavetype = -1;
+	int i;
 	psf_format format = PSF_FMT_UNKNOWN;
 
 	//TODO initialize resources
@@ -253,8 +256,6 @@ main (int argc, char* argv[])
 		}
 	}
 
-	//TODO allocate memory for resources
-	
 	/* allocate space for buffer */
 	buffer = (float*) malloc (outprops.chans * sizeof(float) * NFRAMES);
 	if (buffer == NULL)
@@ -290,15 +291,55 @@ main (int argc, char* argv[])
 		goto exit;
 	}
 
-	//TODO initialize arrays... 
-	//     switch statement for selecting wavetype
-	//     additive synthesis algorithm for each wavetype 
+	/* amplitude and frequencies for four principal waveforms */
+	freqfac = 1.0;
+	ampadjust = 0.0;
+	switch (wavetype)
+	{
+		case (WAVE_SQUARE):
+			for (i=0; i < noscs; i++)
+			{
+				ampfac = 1.0 / freqfac;
+				oscamps[i] = ampfac;
+				oscfreqs[i] = freqfac;
+				freqfac += 2.0;
+				ampadjust += ampfac;
+			}
+			break;
+		case (WAVE_TRIANGLE):
+			for (i=0; i < noscs; i++)
+			{
+				ampfac = 1.0 / (freqfac*freqfac);
+				oscamps[i] = ampfac;
+				oscfreqs[i] = freqfac;
+				freqfac += 2.0;
+				ampadjust += ampfac;
+			}
+			break;
+		case (WAVE_SAWUP):
+		case (WAVE_SAWDOWN):
+			for (i=0; i < noscs; i++)
+			{
+				ampfac = 1.0 / freqfac;
+				oscamps[i] = ampfac;
+				oscfreqs[i] = freqfac;
+				freqfac += 1.0;
+				ampadjust += ampfac;
+			}
+			if (wavetype == WAVE_SAWUP)
+			{
+				ampadjust = -ampadjust;
+			}
+			break;
+	}
+	/* adjust amplitudes to add up to 1 */
+	for (i=0; i < noscs; i++)
+		oscamps[i] /= ampadjust;
 
 	/* create each OSCIL */
-	int i;
 	for (i=0; i < noscs; i++)
 	{
-		oscs[i] = new_oscil(outprops.srate);
+		oscs[i] = new_oscil(outprops.srate,PHASE);
 		if (oscs[i] == NULL)
 		{
 			puts("No memory for oscillators.\n");
