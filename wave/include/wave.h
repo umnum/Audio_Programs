@@ -23,7 +23,11 @@ typedef double (*tickfunc)(OSCIL* osc, double freq);
 /*** wave function prototypes ***/
 
 /* a combined OSCIL creation and initialization function */
-OSCIL* new_oscil(unsigned long srate, double phase);
+OSCIL* new_oscil(unsigned long srate);
+
+/* a combined OSCIL creation and initialization function 
+   with phase offset (0 <= phase <= 1) */
+OSCIL* new_oscilp(unsigned long srate, double phase);
 
 /* tick function for a sine waveform */
 double sinetick(OSCIL* p_osc, double freq);

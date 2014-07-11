@@ -424,7 +424,7 @@ int main (int argc, char**argv)
 	}
 
 	/* initialize waveform oscillator */
-	p_osc = new_oscil(outprops.srate, phase);
+	p_osc = new_oscilp(outprops.srate, phase);
 
 	/* calculate the number of frames for the soundfile */
 	outframes = (unsigned long) (dur * outprops.srate + 0.5);

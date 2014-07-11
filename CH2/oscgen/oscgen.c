@@ -350,7 +350,7 @@ main (int argc, char* argv[])
 	/* create each OSCIL */
 	for (i=0; i < noscs; i++)
 	{
-		oscs[i] = new_oscil(outprops.srate,PHASE);
+		oscs[i] = new_oscilp(outprops.srate,PHASE);
 		if (oscs[i] == NULL)
 		{
 			puts("No memory for oscillators.\n");
