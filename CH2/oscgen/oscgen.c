@@ -16,17 +16,18 @@ enum {WAVE_SQUARE, WAVE_TRIANGLE, WAVE_SAWUP, WAVE_SAWDOWN};
 
 main (int argc, char* argv[])
 {
-	//TODO declare variables
+	/* declare variables */
 	PSF_PROPS outprops; /* soundfile properties */
-	double dur, amp, freq, peakdiff; 
+	double dur, amp, freq, val, peakdiff; 
 	double minval, maxval;
 	double ampfac, freqfac, ampadjust;
 	int chans, srate, noscs;
 	int wavetype = -1;
-	int i;
+	int i, j, i_out;
 	psf_format format = PSF_FMT_UNKNOWN;
+	unsigned long nbufs, outframes, remainder, nframes, framesread;
 
-	//TODO initialize resources
+	/* initialize resources */
 	int ofd = -1;
 	int error = 0;
 	FILE* fpamp = NULL;
@@ -257,13 +258,23 @@ main (int argc, char* argv[])
 	}
 
 	/* allocate space for buffer */
-	buffer = (float*) malloc (outprops.chans * sizeof(float) * NFRAMES);
+	nframes = NFRAMES;
+	buffer = (float*) malloc (outprops.chans * sizeof(float) * nframes);
 	if (buffer == NULL)
 	{
 		puts("No memory!\n");
 		error++;
 		goto exit;
 	}	
+
+	/* calculate the number of output frames */
+	outframes = (unsigned long) (dur * outprops.srate + 0.5);
+
+	/* calculate the number of buffers */
+	nbufs = (unsigned long) outframes/nframes;
+	remainder = outframes - nbufs*nframes;
+	if (remainder > 0)
+		nbufs++; 
 
 	/* create amp and freq arrays */
 	oscamps = (double*) malloc (noscs * sizeof(double));
@@ -348,9 +359,52 @@ main (int argc, char* argv[])
 		}
 	} 
 
-	//TODO process soundfile
+	printf("Creating soundfile...\n");
 
-	//TODO update status
+	/* process soundfile */
+	framesread = 0;
+	for (i=0; i < nbufs; i++)	
+	{
+		if ((i == (nbufs-1)) && remainder)
+			nframes = remainder;
+		/* update copy status after refreshing the buffer every 100 times */
+		if ((i%100)==0)
+			printf("%lu frames copied...  %d%%\r", framesread, (int)(framesread/outframes));
+		/* clear update status when done */
+		if (i==(nbufs-1))
+			printf("                                                                   \r");
+		for (j=0; j < nframes; j++)
+		{
+			long k;
+			if (freqstream)
+				freq = bps_tick(freqstream);
+			if (ampstream)
+				amp = bps_tick(ampstream);
+			val = 0.0;
+			for (k=0; k < noscs; k++)
+				val += oscamps[k] * sinetick(oscs[k], freq*oscfreqs[k]);
+			for (i_out=0; i_out < outprops.chans; i_out++)
+				buffer[j*outprops.chans + i_out] = (float)(val * amp);
+			framesread += nframes;
+		}
+		if (psf_sndWriteFloatFrames(ofd, buffer, nframes) != nframes)
+		{
+			printf("Error writing to outfile.\n");
+			error++;
+			break;
+		}
+	}
+
+	printf("Done. %d error%s\n"
+	       "File created:\t%s\n"
+	       "Frames copied:\t%lu\n",
+	        error, (error==1)?"":"s",
+	        argv[ARG_OUTFILE], framesread
+	       );	
+
+	/* display outfile properties if successfully copied */
+	if (!error)
+		psf_sndInfileProperties(argv[ARG_OUTFILE], ofd, &outprops);
 
 	// clean up resources
 	exit:
