@@ -387,7 +387,6 @@ main (int argc, char* argv[])
 				val += oscamps[k] * sinetick(oscs[k], freq*oscfreqs[k]);
 			for (i_out=0; i_out < outprops.chans; i_out++)
 				buffer[j*outprops.chans + i_out] = (float)(val * amp);
-			printf("%f\n",val*amp);
 			framesread += nframes;
 		}
 		if (psf_sndWriteFloatFrames(ofd, buffer, nframes) != nframes)
