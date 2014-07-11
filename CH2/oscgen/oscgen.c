@@ -7,7 +7,8 @@
 #include <breakpoints.h>
 #include <wave.h>
 #define NFRAMES 100 // default frames for buffer
-#define PHASE 0 // default oscillator offset is 0
+#define DEFAULT_PHASE 0 /* default oscillator offset is 0  
+                           set to 0.25 for triagle wave */
 
 enum {ARG_PROGNAME, ARG_OUTFILE, ARG_DUR, ARG_SRATE, ARG_CHANS,
       ARG_AMP, ARG_FREQ, ARG_TYPE, ARG_NOSCS, ARG_NARGS};
@@ -18,14 +19,16 @@ main (int argc, char* argv[])
 {
 	/* declare variables */
 	PSF_PROPS outprops; /* soundfile properties */
-	double dur, amp, freq, val, peakdiff; 
-	double minval, maxval;
-	double ampfac, freqfac, ampadjust;
-	int chans, srate, noscs;
+	double dur, amp, freq, val;
+	double phase = DEFAULT_PHASE; 
+	double minval, maxval; /* gather min/max values in breakpoint files */
+	double ampfac, freqfac, ampadjust; /* oscillator bank values */
+	int chans, srate,	
+	    noscs; /* number of oscillators in oscillator bank */
 	int wavetype = -1;
-	int i, j, i_out;
+	int i, j, i_out; /* for loop counters */
 	psf_format format = PSF_FMT_UNKNOWN;
-	unsigned long nbufs, outframes, remainder, nframes, framesread;
+	unsigned long nbufs, outframes, remainder, nframes, framesread; /* buffer frame variables */
 
 	/* initialize resources */
 	int ofd = -1;
@@ -162,6 +165,8 @@ main (int argc, char* argv[])
 	fpamp = fopen(argv[ARG_AMP],"r");
 	if (fpamp == NULL)
 	{
+		/* if the user specified a non-existant breakpoint file
+		   or didn't specify an ampitude value */
 		if ( (argv[ARG_AMP][0] < '0' || argv[ARG_AMP][0] > '9') && 
 		     (argv[ARG_AMP][0] != '.' && argv[ARG_AMP][0] != '-') || 
 		     (argv[ARG_AMP][0] == '.' && (argv[ARG_AMP][1] < '0' || argv[ARG_AMP][1] > '9')) ||  
@@ -172,6 +177,7 @@ main (int argc, char* argv[])
 			error++;
 			goto exit; 
 		}
+		/* the user specified an amplitude value */
 		amp = atof(argv[ARG_AMP]);
 		if (amp <= 0.0 || amp > 1.0)
 		{
@@ -326,6 +332,7 @@ main (int argc, char* argv[])
 				freqfac += 2.0;
 				ampadjust += ampfac;
 			}
+			phase = 0.25; /* default phase for triangle */
 			break;
 		case (WAVE_SAWUP):
 		case (WAVE_SAWDOWN):
@@ -350,7 +357,7 @@ main (int argc, char* argv[])
 	/* create each OSCIL */
 	for (i=0; i < noscs; i++)
 	{
-		oscs[i] = new_oscilp(outprops.srate,PHASE);
+		oscs[i] = new_oscilp(outprops.srate,phase);
 		if (oscs[i] == NULL)
 		{
 			puts("No memory for oscillators.\n");
