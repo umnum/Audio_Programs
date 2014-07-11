@@ -5,10 +5,27 @@
 
 /** wave oscil function definitions **/
 
+
+/* a combined OSCIL creation and initialization function */ 
+OSCIL* new_oscil(unsigned long srate)
+{
+	OSCIL* p_osc;	
+
+	p_osc = (OSCIL*)malloc(sizeof(OSCIL));
+	if (p_osc==NULL)
+		return NULL;
+	p_osc->twopiovrsr = TWOPI / (double) srate;
+	p_osc->curfreq = 0.0;
+	p_osc->curphase = 0.0;
+	p_osc->incr = 0.0;
+
+	return p_osc;
+}
+
 /* a combined OSCIL creation and initialization function 
    the phase argument is a fraction between 0 and 1 which 
    sets initial phase of the oscillator */
-OSCIL* new_oscil(unsigned long srate, double phase)
+OSCIL* new_oscilp(unsigned long srate, double phase)
 {
 	OSCIL* p_osc;	
 	p_osc = (OSCIL*)malloc(sizeof(OSCIL));
