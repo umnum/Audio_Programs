@@ -7,7 +7,7 @@
 #include <breakpoints.h>
 #include <wave.h>
 #define NFRAMES 100 // default frames for buffer
-#define PHASE 0 // default oscillator offset is 0
+#define DEFAULT_PHASE 0 // default oscillator offset is 0
 
 enum {ARG_PROGNAME, ARG_OUTFILE, ARG_DUR, ARG_SRATE, ARG_CHANS,
       ARG_AMP, ARG_FREQ, ARG_TYPE, ARG_NOSCS, ARG_NARGS};
@@ -19,6 +19,7 @@ main (int argc, char* argv[])
 	/* declare variables */
 	PSF_PROPS outprops; /* soundfile properties */
 	double dur, amp, freq, val, peakdiff; 
+	double phase = DEFAULT_PHASE; 
 	double minval, maxval;
 	double ampfac, freqfac, ampadjust;
 	int chans, srate, noscs;
@@ -326,6 +327,7 @@ main (int argc, char* argv[])
 				freqfac += 2.0;
 				ampadjust += ampfac;
 			}
+			phase = 0.25;
 			break;
 		case (WAVE_SAWUP):
 		case (WAVE_SAWDOWN):
@@ -350,7 +352,7 @@ main (int argc, char* argv[])
 	/* create each OSCIL */
 	for (i=0; i < noscs; i++)
 	{
-		oscs[i] = new_oscilp(outprops.srate,PHASE);
+		oscs[i] = new_oscilp(outprops.srate,phase);
 		if (oscs[i] == NULL)
 		{
 			puts("No memory for oscillators.\n");
@@ -385,6 +387,7 @@ main (int argc, char* argv[])
 				val += oscamps[k] * sinetick(oscs[k], freq*oscfreqs[k]);
 			for (i_out=0; i_out < outprops.chans; i_out++)
 				buffer[j*outprops.chans + i_out] = (float)(val * amp);
+			printf("%f\n",val*amp);
 			framesread += nframes;
 		}
 		if (psf_sndWriteFloatFrames(ofd, buffer, nframes) != nframes)
