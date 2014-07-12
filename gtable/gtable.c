@@ -111,3 +111,47 @@ double tabitick(OSCILT* p_osc, double freq)
 	p_osc->osc.curphase = curphase;
 	return val;
 }
+
+/* a self-contained generation function for the triangle wave */
+GTABLE* new_triangle(unsigned long length, unsigned long nharms)
+{
+	unsigned long i, j;
+	double step, amp, maxamp;
+	double* table;
+	unsigned long harmonic = 1;
+	GTABLE* gtable = NULL;
+	if (length == 0 || nharms == 0 || nharms >= length/2 )
+		return NULL;
+	table = (double *) malloc ((length + 1) * sizeof(double));
+	if (table == NULL)
+	{
+		free(gtable);
+		return NULL;
+	}	
+	for (i=0; i < length; i++)
+		table[i] = 0.0;
+	step = TWOPI/length;
+	/* generate triangle wave */
+	for (i=0; i < nharms; i++)
+	{
+		amp = 1.0/(harmonic*harmonic);
+		for (j=0; j < length; j++)
+			table[j] += amp * cos (step * harmonic * j);		
+		harmonic += 2;
+	}
+	/* normalize table */
+	maxamp = fabs(table[0]);
+	for (i=1; i < length; i++)
+	{
+		amp = fabs(table[i]);
+		if (maxamp < amp)
+			maxamp = amp; 
+	}
+	maxamp = 1.0/maxamp;
+	for (i=0; i < length; i++)
+		table[i] *= maxamp;
+	table[i] = table[0]; /* guard point */
+	gtable->length = length;
+	gtable->table = table;
+	return gtable;	
+}

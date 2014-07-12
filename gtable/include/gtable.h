@@ -38,3 +38,6 @@ double tabtick(OSCILT* p_osc, double freq);
 
 /* interpolating GTABLE tick function */
 double tabitick(OSCILT* p_osc, double freq);
+
+/* a self-contained generation function for the triangle wave */
+GTABLE* new_triangle(unsigned long length, unsigned long nharms);
