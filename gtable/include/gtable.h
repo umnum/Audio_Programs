@@ -8,6 +8,19 @@ typedef struct t_gtable
 	unsigned long length; /* excluding guard point */
 } GTABLE;
 
+/*** type definition of OSCILT derived from OSCIL ***/
+
+typedef struct t_tab_oscil
+{
+	OSCIL osc;
+	const GTABLE* gtable;
+	double dtablen;
+	double sizeovrsr;	
+} OSCILT;
+
+/*** define a pointer to an oscilt tick function */
+typedef double (*oscilt_tickfunc)(OSCILT* osc, double freq);
+
 
 /*** function prototypes ***/
 
@@ -16,3 +29,12 @@ GTABLE* new_sine(unsigned long length);
 
 /* the GTABLE destruction function */
 void gtable_free(GTABLE** gtable);
+
+/* OSCILT creation function */
+OSCILT* new_oscilt(double srate, const GTABLE* gtable, double phase);
+
+/* truncating GTABLE tick function */
+double tabtick(OSCILT* p_osc, double freq);
+
+/* interpolating GTABLE tick function */
+double tabitick(OSCILT* p_osc, double freq);
