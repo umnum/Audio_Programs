@@ -44,6 +44,3 @@ GTABLE* new_triangle(unsigned long length, unsigned long nharms);
 
 /* creates a fully allocate but empty table */
 GTABLE* new_gtable(unsigned long length);
-
-/* normalizes the table, and sets guard point */
-void norm_gtable(GTABLE* gtable);

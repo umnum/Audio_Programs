@@ -5,6 +5,12 @@
 #include <gtable.h> 
 
 
+/**** static function declarations ***/
+
+/* normalizes the table, and sets the guard point */
+static void norm_gtable(GTABLE* gtable);
+
+
 /**** gtable function definitions ***/
 
 /* GTABLE creation function for sine wave */
@@ -179,14 +185,14 @@ GTABLE* new_gtable(unsigned long length)
 }
 
 /* normalizes the table, and sets the guard point */
-void norm_gtable(GTABLE* gtable)
+static void norm_gtable(GTABLE* gtable)
 {
 	unsigned long i;
 	double val, maxamp = 0.0;
 	
 	for (i=0; i < gtable->length; i++)
 	{
-		val = fabs(table[i]);
+		val = fabs(gtable->table[i]);
 		if (maxamp < val)
 			maxamp = val;
 	}
