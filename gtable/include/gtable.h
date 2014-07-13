@@ -1,3 +1,6 @@
+/*** enum for new_saw function ***/
+enum {SAW_DOWN, SAW_UP};
+
 
 /*** type definition of lookup table
      GTABLE  with guard point ***/
