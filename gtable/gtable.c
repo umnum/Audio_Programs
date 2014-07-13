@@ -155,3 +155,43 @@ GTABLE* new_triangle(unsigned long length, unsigned long nharms)
 	gtable->table = table;
 	return gtable;	
 }
+
+/* creates a fully allocate but empty table */
+GTABLE* new_gtable(unsigned long length)
+{
+	unsigned long i;
+	GTABLE* gtable = NULL;
+	if (length == 0)
+		return NULL;
+	gtable = (GTABLE* ) malloc (sizeof(GTABLE)); 
+	if (gtable == NULL)
+		return NULL;
+	gtable->table = (double*) malloc ((length + 1) * sizeof(double));
+	if (gtable->table == NULL)
+	{
+		free (gtable);
+		return NULL;
+	}
+	gtable->length = length;
+	for (i=0; i <= length; i++)
+		gtable->table[i] = 0.0;
+	return gtable;
+}
+
+/* normalizes the table, and sets the guard point */
+void norm_gtable(GTABLE* gtable)
+{
+	unsigned long i;
+	double val, maxamp = 0.0;
+	
+	for (i=0; i < gtable->length; i++)
+	{
+		val = fabs(table[i]);
+		if (maxamp < val)
+			maxamp = val;
+	}
+	maxamp = 1.0/maxamp;	
+	for (i=0; i < gtable->length; i++)
+		gtable->table[i] *= maxamp;
+	gtable->table[i] = gtable->table[0];
+} 
