@@ -37,9 +37,7 @@ int main (int argc, char**argv)
 	BRKSTREAM* freqstream = NULL;
 	OSCILT* p_osc = NULL;	
 	unsigned long brkampSize = 0,
-	              brkfreqsize = 0;
-
-	//TODO check command line arguments, check options
+	              brkfreqSize = 0;
 	
 	printf("TABGEN: a table lookup oscillator generator.\n");
 
@@ -208,7 +206,7 @@ int main (int argc, char**argv)
 	/* resources have been gathered at this point
 	   use goto upon hitting any errors */
 
-	/* TODO get amplitude value or breakpoint file */
+	/* get amplitude value or breakpoint file */
 	fpamp = fopen(argv[ARG_AMP],"r");		
 	if (fpamp == NULL)
 	{
@@ -258,6 +256,54 @@ int main (int argc, char**argv)
 			       "       0.0 < amp <= 1.0\n", argv[ARG_AMP]);
 			error++;
 			goto exit; 
+		}
+	}
+
+	/* get frequency value or breakpoint file */
+	fpfreq = fopen(argv[ARG_FREQ],"r");
+	if (fpfreq == NULL)
+	{
+		if ( (argv[ARG_FREQ][0] < '0' || argv[ARG_FREQ][0] > '9') &&
+		   (argv[ARG_FREQ][0] != '.' && argv[ARG_FREQ][0] != '-') ||
+		   (argv[ARG_FREQ][0] == '.' && (argv[ARG_FREQ][1] < '0' || argv[ARG_FREQ][1] > '9')) ||
+		   (argv[ARG_FREQ][0] == '-' && (argv[ARG_FREQ][1] < '0' || argv[ARG_FREQ][1] > '9') && argv[ARG_FREQ][1] != '.') )
+		{
+			printf("Error: breakpoint file \"%s\" does not exist.\n",
+			        argv[ARG_FREQ]);
+			error++;
+			goto exit;
+		}
+		freq = atof(argv[ARG_FREQ]);
+		if (freq <= 0.0)
+		{
+			printf("Error: frequency must be positive.\n");
+			error++;
+			goto exit;
+		}
+	}
+	else
+	{
+		freqstream = bps_newstream(fpfreq,outprops.srate,&brkfreqSize);
+		if (freqstream == NULL)
+		{
+			printf("Error reading breakpoing values from file \"%s\".\n",
+			        argv[ARG_FREQ]);
+			error++;
+			goto exit;
+		}	
+		if (bps_getminmax(freqstream,&minval,&maxval))
+		{
+			printf("Error: unable to read breakpoint range "
+			       "from file \"%s\".\n", argv[ARG_FREQ]);
+			error++;
+			goto exit;
+		}
+		if (minval < 0.0 || maxval < 0.0)
+		{
+			printf("Error: breakpoint frequency values out of range in file \"%s\"\n"
+			       "       freq >= 0.0\n", argv[ARG_FREQ]);
+			error++;
+			goto exit;
 		}
 	}
 
@@ -324,4 +370,7 @@ int main (int argc, char**argv)
 		free(p_osc);
 		p_osc = NULL;
 	}
+	psf_finish();
+
+	return error;
 }
