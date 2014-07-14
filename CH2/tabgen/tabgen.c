@@ -19,6 +19,7 @@ int main (int argc, char**argv)
 	PSF_PROPS outprops;
 	psf_format outformat = PSF_FMT_UNKNOWN; 
 	double dur, freq, amp;
+	double minval, maxval;
 	int srate, nharms;
 	int wavetype = -1;
 	int chans;
@@ -28,12 +29,15 @@ int main (int argc, char**argv)
 
 	//TODO init resources
 	int ofd = -1;
+	int error = 0;
 	FILE *fpamp = NULL;
 	FILE *fpfreq = NULL;
 	float* buffer = NULL;
 	BRKSTREAM* ampstream = NULL;
 	BRKSTREAM* freqstream = NULL;
 	OSCILT* p_osc = NULL;	
+	unsigned long brkampSize = 0,
+	              brkfreqsize = 0;
 
 	//TODO check command line arguments, check options
 	
@@ -179,12 +183,82 @@ int main (int argc, char**argv)
 		default:
 			wavetype = -1;
 	} 
-	if (wavetype < 0 )
+	if (wavetype < 0) 
 	{
 		printf("Error:    %s is not a valid wave type.\n"
 		       "wavetype: sine, square, triangle, sawup, sawdown\n",
 		        argv[ARG_TYPE]); 
 		return 1;
+	}
+
+	/* start portsf */
+	psf_init();
+
+	/* create output soundfile - set to 16-bit by default */
+	outprops.samptype = PSF_SAMP_16;
+	outprops.chformat = PSF_STDWAVE;
+	ofd = psf_sndCreate(argv[ARG_OUTFILE],&outprops,0,0,PSF_CREATE_RDWR);
+	if (ofd < 0)
+	{
+		printf("Error: unable to create soundfile \"%s\"\n",
+		        argv[ARG_OUTFILE]);
+		return 1;
+	}
+
+	/* resources have been gathered at this point
+	   use goto upon hitting any errors */
+
+	/* TODO get amplitude value or breakpoint file */
+	fpamp = fopen(argv[ARG_AMP],"r");		
+	if (fpamp == NULL)
+	{
+		/* if the user specified a non-existant breakpoint file
+		   or didn't specify a breakpoint value */
+		if ( (argv[ARG_AMP][0] < '0' || argv[ARG_AMP][0] > '9') &&
+		   (argv[ARG_AMP][0] != '.' && argv[ARG_AMP][0] != '-') ||
+		   (argv[ARG_AMP][0] == '.' && (argv[ARG_AMP][1] < '0' || argv[ARG_AMP][1] > '9')) ||
+		   (argv[ARG_AMP][0] == '-' && (argv[ARG_AMP][1] < '0' || argv[ARG_AMP][1] > '9') && argv[ARG_AMP][1] != '.') )
+		{
+			printf("Error: breakpoint file \"%s\" does not exist.\n",
+			        argv[ARG_AMP]);
+			error++;
+			goto exit;
+		}
+		/* the user specified a breakpoint value */
+		amp = atof(argv[ARG_AMP]);
+		if (amp <= 0.0 || amp > 1.0)
+		{
+			printf("Error: amplitude value out of range.\n"
+			       "       0.0 < amp <= 1.0\n");
+			error++;
+			goto exit;
+		}
+	}
+	else
+	{
+		/* gather breakpoint values */
+		ampstream = bps_newstream(fpamp,outprops.srate,&brkampSize);
+		if (ampstream == NULL)
+		{
+			printf("Error reading breakpoint values from file \"%s\".\n",
+			        argv[ARG_AMP]);
+			error++;
+			goto exit;			
+		}
+		if (bps_getminmax(ampstream,&minval,&maxval))
+		{
+			printf("Error: unable to read breakpoint range "
+			       "from file \"%s\".\n", argv[ARG_AMP]);
+			error++;
+			goto exit;
+		}
+		if (minval <= 0.0 || minval > 1.0 || maxval <= 0.0 || maxval > 1.0)
+		{
+			printf("Error: breakpoint amplitude values out of range in file \"%s\"\n"
+			       "       0.0 < amp <= 1.0\n", argv[ARG_AMP]);
+			error++;
+			goto exit; 
+		}
 	}
 
 	//TODO allocate memory for resources
@@ -196,4 +270,58 @@ int main (int argc, char**argv)
 	//TODO update status
 
 	//TODO clean resources
+	exit:
+	if (ofd >= 0)
+	{
+		if (psf_sndClose(ofd))
+		{
+			printf("Error: unable to close soundfile: %s\n",
+			        argv[ARG_OUTFILE]); 
+		}
+		else if (error)
+		{
+			printf("There was an error while processing the soundfile.\n"
+			       "Deleting soundfile: %s\n", argv[ARG_OUTFILE]);
+			if (remove(argv[ARG_OUTFILE]))
+				printf("Error: unable to delete %s\n", argv[ARG_OUTFILE]);
+			else
+				printf("%s successfully deleted.\n", argv[ARG_OUTFILE]); 
+		}
+	}
+	if (fpamp)
+	{
+		if (fclose(fpamp))
+		{
+			printf("Error: unable to close breakpoint file \"%s\"\n",
+			        argv[ARG_AMP]);	
+		}
+	} 
+	if (fpfreq)
+	{
+		if (fclose(fpfreq))
+		{
+			printf("Error: unable to close breakpoint file \"%s\"\n",
+			        argv[ARG_FREQ]);
+		}
+	}
+	if (buffer)
+	{
+		free(buffer);
+		buffer = NULL;
+	}
+	if (ampstream)
+	{
+		bps_freepoints(ampstream);
+		ampstream = NULL;
+	}
+	if (freqstream)
+	{
+		bps_freepoints(freqstream);
+		freqstream = NULL;
+	}
+	if (p_osc)
+	{
+		free(p_osc);
+		p_osc = NULL;
+	}
 }
