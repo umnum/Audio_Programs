@@ -7,6 +7,8 @@
 #include <wave.h>
 #include <gtable.h>
 #include <breakpoints.h>
+#define DEFAULT_NFRAMES 100 // frames in buffer
+#define DEFAULT_WIDTH 1024  // table oscillator size
 
 enum {ARG_PROGNAME, ARG_OUTFILE, ARG_DUR, ARG_SR, ARG_CHANS,
       ARG_AMP, ARG_FREQ, ARG_TYPE, ARG_NHARMS, ARG_NARGS};
@@ -15,19 +17,23 @@ enum {WAVE_SINE=4, WAVE_SAWUP, WAVE_SQUARE, WAVE_SAWDOWN, WAVE_TRIANGLE, };
 
 int main (int argc, char**argv)
 {
-	//TODO declare variables
+	/* declare variables */
 	PSF_PROPS outprops;
 	psf_format outformat = PSF_FMT_UNKNOWN; 
-	double dur, freq, amp;
-	double minval, maxval;
+	double dur, freq, amp, peakdiff;
+	float val;
+	double minval, maxval, maxamp;
 	int srate, nharms;
+	unsigned long i, j;
+	int i_out;
 	int wavetype = -1;
 	int chans;
-	long int width = 1024;
+	unsigned long width = DEFAULT_WIDTH;
 	int istrunc = 0;
 	unsigned long nbufs, outframes, remainder, nframes, framesread;
+	oscilt_tickfunc tickfunc = tabitick;
 
-	//TODO init resources
+	/* init resources */
 	int ofd = -1;
 	int error = 0;
 	FILE *fpamp = NULL;
@@ -35,6 +41,7 @@ int main (int argc, char**argv)
 	float* buffer = NULL;
 	BRKSTREAM* ampstream = NULL;
 	BRKSTREAM* freqstream = NULL;
+	GTABLE* gtable = NULL;
 	OSCILT* p_osc = NULL;	
 	unsigned long brkampSize = 0,
 	              brkfreqSize = 0;
@@ -57,7 +64,10 @@ int main (int argc, char**argv)
 					return 1;
 				case('t'):
 					if (argv[1][2] == '\0')
+					{
+						tickfunc = tabtick;	
 						istrunc = 1;	
+					}
 					else
 					{
 						printf("Error:   %s is not a valid option.\n"
@@ -257,6 +267,7 @@ int main (int argc, char**argv)
 			error++;
 			goto exit; 
 		}
+		maxamp = maxval;
 	}
 
 	/* get frequency value or breakpoint file */
@@ -307,15 +318,139 @@ int main (int argc, char**argv)
 		}
 	}
 
-	//TODO allocate memory for resources
+	/* create an outfile buffer */	
+	nframes = DEFAULT_NFRAMES;
+	buffer = (float *) malloc (sizeof(float) * nframes * outprops.chans);
+	if (buffer == NULL)
+	{
+		printf("No memory!\n");
+		error++;
+		goto exit;
+	}
 
-	//TODO select wavetype
+	/* calculate the total number of outfile frames */
+	outframes = (unsigned long) (dur * outprops.srate + 0.5);	
 
-	//TODO process soundfile
+	/* calculate the number of buffers used in outfile */
+	nbufs = outframes / nframes;
+	remainder = outframes - nframes * nbufs; 
+	if (remainder > 0)
+		nbufs++;
 
-	//TODO update status
+	/* allocate space for new wavetype table oscillator 
+	   and initialize oscillator */
+	switch (wavetype)
+	{
+		case (WAVE_SINE):
+			gtable = new_sine(width); 
+			if (gtable == NULL)
+			{
+				printf("Error: unable to create a sine wave table.\n");
+				error++;
+				goto exit;
+			}
+			p_osc = new_oscilt(outprops.srate,gtable,0); 
+			break;
+		case (WAVE_SQUARE):
+			gtable = new_square(width,nharms);
+			if (gtable == NULL)
+			{
+				printf("Error: unable to create a square wave table.\n");
+				error++;
+				goto exit;
+			}
+			p_osc = new_oscilt(outprops.srate,gtable,0); 
+			break;
+		case (WAVE_TRIANGLE):
+			gtable = new_triangle(width,nharms);
+			if (gtable == NULL)
+			{
+				printf("Error: unable to create a triangle wave table.\n");
+				error++;
+				goto exit;
+			}
+			p_osc = new_oscilt(outprops.srate,gtable,0.25); 
+			break;
+		case (WAVE_SAWUP):
+		case (WAVE_SAWDOWN):
+			if (wavetype==WAVE_SAWUP)
+				gtable = new_saw(width,nharms,SAW_UP);
+			else 
+				gtable = new_saw(width,nharms,SAW_DOWN);
+			if (gtable == NULL)
+			{
+				printf("Error: unable to create a saw%s wave table.\n",
+				        (wavetype==SAW_UP)?"up":"down");
+				error++;
+				goto exit;
+			}	
+			p_osc = new_oscilt(outprops.srate,gtable,0);
+			break;
+	}	
 
-	//TODO clean resources
+	printf("Creating soundfile...\n");
+
+	/* process soundfile */
+	framesread = 0;
+	for (i=0; i < nbufs; i++)	
+	{
+		/* update outfile copy status after the buffer
+		   is refreshed every 100 times */
+		if(i%100)
+		{
+			printf("%lu frames copied... %d%%\r",
+			        framesread, (int)(framesread/outframes));
+		} 
+		/* clear update status when done */
+		if (i==(nbufs-1))
+			printf("                                    \n");
+
+		if ((i == (nbufs-1)) && remainder)	
+			nframes = remainder;
+		for (j=0; j < nframes; j++)
+		{
+			if (ampstream)
+				amp = bps_tick(ampstream);
+			if (freqstream)
+				freq = bps_tick(freqstream);
+			val = tickfunc(p_osc,freq) * amp;	
+			for (i_out=0; i_out < outprops.chans; i_out++)
+				buffer[j*outprops.chans + i_out] = val;
+			framesread += nframes;
+		}
+		if (psf_sndWriteFloatFrames(ofd,buffer,nframes) != nframes)
+		{
+			printf("Error: unable to write frames to outfile.\n");
+			error++;
+			break;
+		}
+	}
+
+	//TODO not generating the correct peak at certain frequencies
+	/* make sure peak amplitude roughly matches the
+	   user requested amplitude */
+	if (ampstream)
+		peakdiff = maxval-psf_sndPeakValue(ofd,&outprops);
+	else	
+		peakdiff = amp-psf_sndPeakValue(ofd,&outprops);
+	if ((peakdiff>.0001) || (peakdiff<-.0001))
+	{
+		printf("ERROR: unable to generate the correct peak\n"
+		       "       amplitude for %s\n", argv[ARG_OUTFILE]);
+		error++;
+	}
+
+	printf("Done. %d error%s\n"
+	       "soundfile created: %s\n"
+	       "number of frames:  %lu\n",
+	        error, (error==1)?"":"s",
+	        argv[ARG_OUTFILE], framesread);
+
+	/* display soundfile properties if successfully copied */
+	if (!error)
+		psf_sndInfileProperties(argv[ARG_OUTFILE],ofd,&outprops);
+
+	/* clean resources */
 	exit:
 	if (ofd >= 0)
 	{
@@ -365,6 +500,8 @@ int main (int argc, char**argv)
 		bps_freepoints(freqstream);
 		freqstream = NULL;
 	}
+	if (gtable)
+		gtable_free(&gtable);
 	if (p_osc)
 	{
 		free(p_osc);
