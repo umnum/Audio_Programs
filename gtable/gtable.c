@@ -18,20 +18,11 @@ GTABLE* new_sine(unsigned long length)
 {
 	unsigned long i;
 	double step;
-	GTABLE* gtable = NULL;
+	GTABLE* gtable;
 	 
 	if (length == 0)
 		return NULL;
-	gtable = (GTABLE* ) malloc (sizeof(GTABLE));
-	if (gtable == NULL)
-		return NULL;
-	gtable->table = (double* ) malloc ((length + 1) * sizeof(double));
-	if (gtable->table == NULL)
-	{
-		 free(gtable);
-		 return NULL;
-	}
-	gtable->length = length;
+	gtable = new_gtable(length); 
 	step = TWOPI / length; /* make sine wave */
 	for (i=0; i < length; i++)
 		gtable->table[i] = sin(step * i);

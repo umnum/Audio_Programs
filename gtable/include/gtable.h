@@ -45,5 +45,11 @@ double tabitick(OSCILT* p_osc, double freq);
 /* fills table with triangle wave */
 GTABLE* new_triangle(unsigned long length, unsigned long nharms);
 
+/* fills table with square wave */
+GTABLE* new_square(unsigned long length, unsigned long nharms);
+
+/* fills table with saw up/down wave */
+GTABLE* new_saw(unsigned long length, unsigned long nharms, int up);
+
 /* creates a fully allocate but empty table */
 GTABLE* new_gtable(unsigned long length);
