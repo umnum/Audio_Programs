@@ -13,12 +13,12 @@
 enum {ARG_PROGNAME, ARG_OUTFILE, ARG_DUR, ARG_SR, ARG_CHANS,
       ARG_AMP, ARG_FREQ, ARG_TYPE, ARG_NHARMS, ARG_NARGS};
 
-enum {WAVE_SINE=4, WAVE_SAWUP, WAVE_SQUARE, WAVE_SAWDOWN, WAVE_TRIANGLE, };
+enum {WAVE_SINE=4, WAVE_SAWUP, WAVE_SQUARE, WAVE_SAWDOWN, WAVE_TRIANGLE};
 
 int main (int argc, char**argv)
 {
 	/* declare variables */
-	PSF_PROPS outprops;
+	PSF_PROPS outprops; // properties of output soundfile
 	psf_format outformat = PSF_FMT_UNKNOWN; 
 	double dur, freq, amp, peakdiff;
 	float val;
@@ -29,21 +29,20 @@ int main (int argc, char**argv)
 	int wavetype = -1;
 	int chans;
 	unsigned long width = DEFAULT_WIDTH;
-	int istrunc = 0;
 	unsigned long nbufs, outframes, remainder, nframes, framesread;
-	oscilt_tickfunc tickfunc = tabitick;
+	oscilt_tickfunc tickfunc = tabitick; // default table lookup is interpolating
 
 	/* init resources */
 	int ofd = -1;
 	int error = 0;
-	FILE *fpamp = NULL;
-	FILE *fpfreq = NULL;
+	FILE *fpamp = NULL; // amplitude breakpoint file
+	FILE *fpfreq = NULL; // frequency breakpoint file
 	float* buffer = NULL;
-	BRKSTREAM* ampstream = NULL;
-	BRKSTREAM* freqstream = NULL;
-	GTABLE* gtable = NULL;
-	OSCILT* p_osc = NULL;	
-	unsigned long brkampSize = 0,
+	BRKSTREAM* ampstream = NULL; // breakpoint amplitude values
+	BRKSTREAM* freqstream = NULL; // breakpoint frequency values
+	GTABLE* gtable = NULL; // wave table with guard point
+	OSCILT* p_osc = NULL; // oscillator using table lookup	
+	unsigned long brkampSize = 0, // number of breakpoints
 	              brkfreqSize = 0;
 	
 	printf("TABGEN: a table lookup oscillator generator.\n");
@@ -64,10 +63,7 @@ int main (int argc, char**argv)
 					return 1;
 				case('t'):
 					if (argv[1][2] == '\0')
-					{
 						tickfunc = tabtick;	
-						istrunc = 1;	
-					}
 					else
 					{
 						printf("Error:   %s is not a valid option.\n"
@@ -113,7 +109,27 @@ int main (int argc, char**argv)
 	if (argc != ARG_NARGS)
 	{
 		printf("Error: insufficient number of arguments.\n"
-		       "Usage: tabgen [-wN] [-t] outfile dur srate nchans amp freq type nharms\n");
+		       "Usage: tabgen [-wN] [-t] outfile dur srate nchans amp freq type nharms\n"
+		       "       -wN:      w option sets the width of the lookup table to N points\n"
+		       "                 N >= 1\n"
+		       "       -t:       t option selects truncating table lookup\n"
+		       "                 default is interpolating table lookup\n"
+		       "       outfile:  output soundfile\n"
+		       "                 set to 16-bit format\n"
+		       "                 use any of .wav .aiff .aif .afc .aifc formats\n"
+		       "       dur:      duration of soundfile (seconds)\n"
+		       "       srate:    sample rate\n"
+		       "       nchans:   number of channels\n"
+		       "       amp:      amplitude value or breakpoint file\n"
+		       "                 0.0 < amp <= 1.0\n"
+		       "       freq:     frequency value or breakpoint file\n"
+		       "                 freq >= 0.0\n"
+		       "       type:     oscillator wave type\n"
+		       "                 sine, square, triangle, sawup, sawdown\n"
+		       "       nharms:   number of wave harmonics that are\n"
+		       "                 added together in oscillator bank\n" 
+		       "                 nharms >= 1\n"
+		      );
 		return 1;
 	} 
 
@@ -267,7 +283,7 @@ int main (int argc, char**argv)
 			error++;
 			goto exit; 
 		}
-		maxamp = maxval;	
+		maxamp = maxval; // retain the maximum breakpoint amplitude value	
 	}
 
 	/* get frequency value or breakpoint file */
@@ -403,7 +419,7 @@ int main (int argc, char**argv)
 		} 
 		/* clear update status when done */
 		if (i==(nbufs-1))
-			printf("                                    \n");
+			printf("                                        \n");
 
 		if ((i == (nbufs-1)) && remainder)	
 			nframes = remainder;
