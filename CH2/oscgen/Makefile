@@ -5,7 +5,7 @@ EXE = oscgen
 CC = gcc
 CFLAGS = -c
 
-LFLAGS = -lportsf -lbreakpoints -lwave -lm
+LFLAGS = -lportsf -lbreakpoints -lwave -lgtable -lm
 
 build: $(OBJS) 
 	$(CC) $(OBJS) -o $(EXE) $(LFLAGS)
