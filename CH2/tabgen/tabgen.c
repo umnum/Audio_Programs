@@ -267,7 +267,7 @@ int main (int argc, char**argv)
 			error++;
 			goto exit; 
 		}
-		maxamp = maxval;
+		maxamp = maxval;	
 	}
 
 	/* get frequency value or breakpoint file */
@@ -399,7 +399,7 @@ int main (int argc, char**argv)
 		if(i%100)
 		{
 			printf("%lu frames copied... %d%%\r",
-			        framesread, (int)(framesread/outframes));
+			        framesread, (int)(framesread*100/outframes));
 		} 
 		/* clear update status when done */
 		if (i==(nbufs-1))
@@ -416,7 +416,6 @@ int main (int argc, char**argv)
 			val = tickfunc(p_osc,freq) * amp;	
 			for (i_out=0; i_out < outprops.chans; i_out++)
 				buffer[j*outprops.chans + i_out] = val;
-			framesread += nframes;
 		}
 		if (psf_sndWriteFloatFrames(ofd,buffer,nframes) != nframes)
 		{
@@ -424,16 +423,16 @@ int main (int argc, char**argv)
 			error++;
 			break;
 		}
+		framesread += nframes;
 	}
 
-	//TODO not generating the correct peak at certain frequencies
 	/* make sure peak amplitude roughly matches the
 	   user requested amplitude */
 	if (ampstream)
-		peakdiff = maxval-psf_sndPeakValue(ofd,&outprops);
+		peakdiff = maxamp-psf_sndPeakValue(ofd,&outprops);
 	else	
 		peakdiff = amp-psf_sndPeakValue(ofd,&outprops);
-	if ((peakdiff>.0001) || (peakdiff<-.0001))
+	if ((peakdiff>.001) || (peakdiff<-.001))
 	{
 		printf("ERROR: unable to generate the correct peak\n"
 		       "       amplitude for %s\n", argv[ARG_OUTFILE]);
