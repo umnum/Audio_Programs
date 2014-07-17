@@ -1,4 +1,4 @@
-/* a basic oscillator bank for additive synthesis */
+/* a basic oscillator bank for additive synthesis with table lookup and breakpoint support */
 /* USAGE: oscgen [-wN] [-t] [-v fac freq] outsndfile dur srate nchans amp freq wavetype nharms ampfac.dat freqfac.dat */
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,28 +36,28 @@ main (int argc, char* argv[])
 	psf_format format = PSF_FMT_UNKNOWN;
 	unsigned long nbufs, outframes, remainder, nframes, framesread; /* buffer frame variables */
 	unsigned long nharms;
-	oscilt_tickfunc tickfunc = tabitick;	
-	char line[40];
+	oscilt_tickfunc tickfunc = tabitick; /* default tick function is interpolating */	
+	char line[40]; /* stores values from data stream */
 
 	/* initialize resources */
-	int ofd = -1;
+	int ofd = -1; /* output file descriptor */
 	int error = 0;
-	FILE* fpamp = NULL;
-	FILE* fpfreq = NULL;
-	FILE* fpampfac = NULL;
-	FILE* fpfreqfac = NULL;
+	FILE* fpamp = NULL; /* pointer to an amplitude breakpoint file */
+	FILE* fpfreq = NULL; /* pointer to a frequency breakpoint file */
+	FILE* fpampfac = NULL; /* pointer to a harmonic amplitude data file */
+	FILE* fpfreqfac = NULL; /* pointer to a harmonic frequency data file */
 	float* buffer = NULL;	
-	BRKSTREAM* ampstream = NULL;
-	BRKSTREAM* freqstream = NULL;
-	OSCILT **oscs = NULL;
+	BRKSTREAM* ampstream = NULL; /* amplitude breakpoint values */
+	BRKSTREAM* freqstream = NULL; /* frequency breakpoint values */
+	OSCILT **oscs = NULL; /* array of osc pointers in osc bank */
 	OSCILT *vibosc = NULL; /* oscillator for vibrato */
-	GTABLE** gtable = NULL;
+	GTABLE** gtable = NULL; /* array of gtable pointers in osc bank */
 	GTABLE* vibtable = NULL; /* oscillator lookup table for vibrato */
-	double *oscamps = NULL,
-	       *oscfreqs = NULL;
-	unsigned long brkampSize = 0,
+	double *oscamps = NULL, /* harmonic amplitude values in osc bank */
+	       *oscfreqs = NULL; /* harmonic frequency values in osc bank */
+	unsigned long brkampSize = 0, /* number of amp/freq breakpoint values */
 	              brkfreqSize = 0,
-	              ampfacSize = 0,
+	              ampfacSize = 0, /* number of amp/freq data values */ 
 	              freqfacSize = 0;
 
 	printf("OSCGEN: basic oscillator bank for additive synthesis\n");
@@ -644,18 +644,23 @@ main (int argc, char* argv[])
 		for (j=0; j < nframes; j++)
 		{
 			long k;
-			if (freqstream)
+			/* if breakpoints are used, get values from the breakpoint stream */
+			if (freqstream)  
 				freq = bps_tick(freqstream);
 			if (ampstream)
 				amp = bps_tick(ampstream);
 			val = 0.0;
-			if (isvib) /* add vibrato */
+			/* add vibrato */
+			if (isvib) 
 				vibsig = vibfac*tickfunc(vibosc,vibfreq);	
+			/* add harmonic values from osc bank */
 			for (k=0; k < noscs; k++)
 				val += oscamps[k] * tickfunc(oscs[k], freq*oscfreqs[k] * (1 + vibsig));
+			/* send values to buffer */
 			for (i_out=0; i_out < outprops.chans; i_out++)
 				buffer[j*outprops.chans + i_out] = (float)(val * amp);
 		}
+		/* write values to soundfile */
 		if (psf_sndWriteFloatFrames(ofd, buffer, nframes) != nframes)
 		{
 			printf("Error writing to outfile.\n");
