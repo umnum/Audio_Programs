@@ -1,19 +1,22 @@
-/* a basic oscillator bank for additive synthesis */
-/* USAGE: oscgen outsndfile dur srate nchans amp freq wavetype noscs */
+/* a basic oscillator bank for additive synthesis with table lookup and breakpoint support */
+/* USAGE: oscgen [-wN] [-t] [-v fac freq] outsndfile dur srate nchans amp freq wavetype nharms ampfac.dat freqfac.dat */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <portsf.h>
 #include <breakpoints.h>
 #include <wave.h>
-#define NFRAMES 100 // default frames for buffer
+#include <gtable.h>
+#define DEFAULT_WIDTH 1024 // default oscillator table length
+#define DEFAULT_NFRAMES 100 // default frames for buffer
 #define DEFAULT_PHASE 0 /* default oscillator offset is 0  
                            set to 0.25 for triagle wave */
 
 enum {ARG_PROGNAME, ARG_OUTFILE, ARG_DUR, ARG_SRATE, ARG_CHANS,
-      ARG_AMP, ARG_FREQ, ARG_TYPE, ARG_NOSCS, ARG_NARGS};
+      ARG_AMP, ARG_FREQ, ARG_TYPE, ARG_NHARMS, 
+      ARG_AMPFAC, ARG_FREQFAC, ARG_NARGS};
 
-enum {WAVE_SQUARE, WAVE_TRIANGLE, WAVE_SAWUP, WAVE_SAWDOWN};
+enum {WAVE_SINE=4, WAVE_SAWUP, WAVE_SQUARE, WAVE_SAWDOWN, WAVE_TRIANGLE};
 
 main (int argc, char* argv[])
 {
@@ -21,49 +24,181 @@ main (int argc, char* argv[])
 	PSF_PROPS outprops; /* soundfile properties */
 	double dur, amp, freq, val;
 	double phase = DEFAULT_PHASE; 
-	double minval, maxval; /* gather min/max values in breakpoint files */
+	unsigned long width = DEFAULT_WIDTH; 
+	double minval, maxval, maxamp; /* gather min/max values in breakpoint files */
 	double ampfac, freqfac, ampadjust; /* oscillator bank values */
-	int chans, srate,	
+	double vibsig=0.0, vibfac=0.0, vibfreq=0.0; /* sets vibrato */ 
+	int isvib = 0; /* flag for setting vibrato */
+	int chans, srate,
 	    noscs; /* number of oscillators in oscillator bank */
 	int wavetype = -1;
 	int i, j, i_out; /* for loop counters */
 	psf_format format = PSF_FMT_UNKNOWN;
 	unsigned long nbufs, outframes, remainder, nframes, framesread; /* buffer frame variables */
+	unsigned long nharms;
+	oscilt_tickfunc tickfunc = tabitick; /* default tick function is interpolating */	
+	char line[40]; /* stores values from data stream */
 
 	/* initialize resources */
-	int ofd = -1;
+	int ofd = -1; /* output file descriptor */
 	int error = 0;
-	FILE* fpamp = NULL;
-	FILE* fpfreq = NULL;
+	FILE* fpamp = NULL; /* pointer to an amplitude breakpoint file */
+	FILE* fpfreq = NULL; /* pointer to a frequency breakpoint file */
+	FILE* fpampfac = NULL; /* pointer to a harmonic amplitude data file */
+	FILE* fpfreqfac = NULL; /* pointer to a harmonic frequency data file */
 	float* buffer = NULL;	
-	OSCIL* p_osc = NULL; 
-	BRKSTREAM* ampstream = NULL;
-	BRKSTREAM* freqstream = NULL;
-	OSCIL **oscs = NULL;
-	double *oscamps = NULL,
-	       *oscfreqs = NULL;
-	unsigned long brkampSize = 0,
-	              brkfreqSize = 0;
+	BRKSTREAM* ampstream = NULL; /* amplitude breakpoint values */
+	BRKSTREAM* freqstream = NULL; /* frequency breakpoint values */
+	OSCILT **oscs = NULL; /* array of osc pointers in osc bank */
+	OSCILT *vibosc = NULL; /* oscillator for vibrato */
+	GTABLE** gtable = NULL; /* array of gtable pointers in osc bank */
+	GTABLE* vibtable = NULL; /* oscillator lookup table for vibrato */
+	double *oscamps = NULL, /* harmonic amplitude values in osc bank */
+	       *oscfreqs = NULL; /* harmonic frequency values in osc bank */
+	unsigned long brkampSize = 0, /* number of amp/freq breakpoint values */
+	              brkfreqSize = 0,
+	              ampfacSize = 0, /* number of amp/freq data values */ 
+	              freqfacSize = 0;
 
 	printf("OSCGEN: basic oscillator bank for additive synthesis\n");
+
+	/* check for command line options */
+	if (argc>1)
+	{
+		while (argv[1][0] == '-')
+		{
+			switch (argv[1][1])
+			{
+				case ('\0'):
+					printf("Error:   you did not specify an option.\n"
+					       "options: -wN   | set width of lookup table "
+					       "to N points (default: 1024 points)\n"
+					       "         -t    | use truncating lookup "
+					       "(default: interpolating lookup)\n"
+					       "         -v fac freq   | include vibrato set at "
+					       "a specified factor and frequency\n",
+					        argv[1]);
+					return 1;
+				case('t'):
+					if (argv[1][2] == '\0')
+						tickfunc = tabtick;
+					else
+					{
+						printf("Error:   %s is not a valid option.\n"
+						       "options: -wN   | set width of lookup table "
+						       "to N points (default: 1024 points)\n"
+						       "         -t    | use truncating lookup "
+						       "(default: interpolating lookup)\n"
+						       "         -v fac freq   | include vibrato set at "
+						       "a specified factor and frequency\n",
+						        argv[1]);
+						return 1;
+					}
+					break;
+				case('v'):
+					if (argv[1][2] != '\0')
+					{
+						printf("Error:   %s is not a valid option.\n"
+						       "options: -wN   | set width of lookup table "
+						       "to N points (default: 1024 points)\n"
+						       "         -t    | use truncating lookup "
+						       "(default: interpolating lookup)\n"
+						       "         -v fac freq   | include vibrato set at "
+						       "a specified factor and frequency\n",
+						        argv[1]);
+						return 1;
+					}
+					if (argc > 3)
+					{
+						vibfac = atof(argv[2]);	
+						if (vibfac <= 0.0 || vibfac > 1.0)
+						{
+							printf("Error: vibrato factor out of range.\n"
+							       "       0.0 < fac <= 1.0\n");
+							return 1;
+						}	
+						vibfreq = atof(argv[3]);
+						if (vibfreq <= 0.0)
+						{
+							printf("Error: vibrato frequency out of range.\n"
+							       "       freq > 0.0\n");
+							return 1;
+						}
+						isvib = 1;
+						argc -= 2;
+						argv += 2;
+					}
+					break;
+				case('w'):
+					if (argv[1][2] == '\0')
+					{
+						printf("Error: you did not specify a table lookup width.\n");
+						return 1;
+					}
+					if (argv[1][2] >= '0' && argv[1][2] <= '9')
+					{
+						width = atoi(&argv[1][2]);
+						if (width < 1)
+						{
+							printf("Error: table width must be at least 1\n");
+							return 1;
+						}
+						break;
+					}
+				default:
+					printf("Error:   %s is not a valid option.\n"
+					       "options: -wN   | set width of lookup table "
+					       "to N points (default: 1024 points)\n"
+					       "         -t    | use truncating lookup "
+					       "(default: interpolating lookup)\n"
+					       "         -v fac freq   | include vibrato set at "
+					       "a specified factor and frequency\n",
+					        argv[1]);
+					return 1;
+			}
+			argc--;
+			argv++;
+		}
+	}
 
 	/* check for correct number of arguments */
 	if (argc!=ARG_NARGS)
 	{
-		printf("ERROR: insufficient number of arguments.\n"
-		       "USAGE: oscgen outsndfile dur srate nchans amp freq wavetype noscs\n"
-		       "outsndfile: output soundfile supported by portsf\n"
-		       "            use any of .wav .aiff .aif .afc .aifc formats\n" 
-		       "dur:        duration of soundfile (seconds)\n"
-		       "srate:      soundfile sample rate (srate > 0)\n"
-		       "nchans:     soundfile number of channels\n"
-		       "amp:        amplitude value or breakpoint file\n"
-		       "            (0 < amp <= 1)\n"
-		       "freq:       frequency value or breakpoint file\n"
-		       "            (frequency >= 0)\n"	
-		       "wavetype:   square, triangle, sawtooth_up, sawtooth_down\n"
-		       "noscs:      number of oscillators in the oscillator bank\n"
+		printf("ERROR: insufficient number of arguments.\n\n"
+
+		       "USAGE: oscgen [-wN] [-t] [-v fac freq] outsndfile dur srate nchans amp freq wavetype nharms ampfac.dat freqfac.dat\n"
+		       "------------------------------------------------------------------------------------------------------------------\n"
+		       "options:     -wN  set width of lookup table to N points (default: 1024 points)\n"
+		       "                  (N >= 1)\n"
+		       "             -t   use truncating lookup (default: interpolating lookup)\n"
+		       "             -v   adds vibrato to the main oscillator\n"
+		       "                  fac:  vibrato factor affects the amount of vibrato\n"
+		       "                        (0.0 < fac <= 1.0)\n"
+		       "                  freq: frequency of vibrato\n" 
+		       "                        (freq > 0.0)\n"
+		       "outsndfile:  output soundfile supported by portsf\n"
+		       "             use any of .wav .aiff .aif .afc .aifc formats\n" 
+		       "dur:         duration of soundfile (seconds)\n"
+		       "srate:       soundfile sample rate (srate > 0)\n"
+		       "nchans:      soundfile number of channels\n"
+		       "amp:         amplitude value or breakpoint file\n"
+		       "             (0.0 < amp <= 1.0)\n"
+		       "freq:        frequency value or breakpoint file\n"
+		       "             (frequency >= 0.0)\n"	
+		       "wavetype:    square, triangle, sawtooth_up, sawtooth_down\n"
+		       "nhamrs:      number of wavetype harmonics\n"
+		       "ampfac.dat:  amplitude factor data file\n"
+		       "             accepts a list of harmonic amplitude data\n"
+		       "             which is stored in the oscillator bank\n"
+		       "             (0.0 < ampfac <= 1.0)\n"
+		       "freqfac.dat: frequency factor data file\n"
+		       "             accepts a list of numbers which are\n"
+		       "             multiplied by the fundamental frequency\n"
+		       "             of each corresponding oscillator\n"
+		       "             in the oscillator bank\n"
+		       "             (freqfac > 0.0)\n"
 		      );
+		return 1;
 	}
 
 	/* open portsf */
@@ -102,20 +237,24 @@ main (int argc, char* argv[])
 
 	switch(count)
 	{
-		case(6):
+		case(WAVE_SINE):
+			if (!strcmp(argv[ARG_TYPE],"sine"))
+				wavetype = WAVE_SINE;
+			break;
+		case(WAVE_SQUARE):
 			if (!strcmp(argv[ARG_TYPE],"square"))
 				wavetype = WAVE_SQUARE;
 			break;
-		case(8):
+		case(WAVE_TRIANGLE):
 			if (!strcmp(argv[ARG_TYPE],"triangle"))
 				wavetype = WAVE_TRIANGLE;
 			break;
-		case(11):
-			if (!strcmp(argv[ARG_TYPE],"sawtooth_up"))
+		case(WAVE_SAWUP):
+			if (!strcmp(argv[ARG_TYPE],"sawup"))
 				wavetype = WAVE_SAWUP;
-				break;
+			break;
 		case(13):
-			if (!strcmp(argv[ARG_TYPE],"sawtooth_down"))
+			if (!strcmp(argv[ARG_TYPE],"sawdown"))
 				wavetype = WAVE_SAWDOWN;
 			break;
 		default:
@@ -124,18 +263,18 @@ main (int argc, char* argv[])
 	if (wavetype < 0)
 	{
 		printf("ERROR:    %s is not a valid wavetype.\n"
-		       "wavetype: square, triangle, sawtooth_up, sawtooth_down\n",
+		       "wavetype: square, triangle, sawup, sawdown\n",
 		        argv[ARG_TYPE]); 
 		return 1;
 	}
 
-	/* get the number of oscillators */
-	noscs = atoi(argv[ARG_NOSCS]);
-	if (noscs < 1)
+	/* get the number of harmonics */
+	nharms = atoi(argv[ARG_NHARMS]);
+	if (nharms < 1)
 	{
-		printf("ERROR: you must choose at least one oscillator.\n");
-		return 1; 
-	}	
+		printf("Error: the number of harmonics must be at least 1\n");
+		return 1;
+	}
 
   /* get the output soundfile extension */
 	format = psf_getFormatExt(argv[ARG_OUTFILE]);
@@ -212,6 +351,7 @@ main (int argc, char* argv[])
 			error++;
 			goto exit; 
 		}
+		maxamp = maxval;
 	}
 
 	// get frequency value or breakpoint file	
@@ -263,8 +403,65 @@ main (int argc, char* argv[])
 		}
 	}
 
+	/* check for valid amplitude factor data */
+	fpampfac = fopen(argv[ARG_AMPFAC],"r");
+	if (fpampfac == NULL)
+	{
+		printf("Error: data file \"%s\" does not exist.\n",
+		        argv[ARG_AMPFAC]);
+		error++;
+		goto exit;
+	}
+	while (fgets(line,40,fpampfac))
+	{
+		ampfac = atof(line);
+		if (ampfac <= 0.0 || ampfac > 1.0)
+		{
+			printf("Error: bad amplitude factor values in file \"%s\"\n"
+			       "       0.0 < ampfac <= 1\n", argv[ARG_AMPFAC]); 
+			error++;
+			goto exit;
+		}
+		ampfacSize++;
+	}
+	/* reset file pointer for later use */
+	rewind(fpampfac);
+	
+	/* check for valid frequency factor data */
+	fpfreqfac = fopen(argv[ARG_FREQFAC],"r");
+	if (fpfreqfac == NULL)
+	{
+		printf("Error: data file \"%s\" does not exist.\n",
+		        argv[ARG_FREQFAC]);
+		error++;
+		goto exit;
+	}
+	while (fgets(line,40,fpfreqfac))
+	{
+		freqfac = atof(line);
+		if (freqfac <= 0.0)
+		{
+			printf("Error: bad frequency factor values in file \"%s\"\n"
+			       "       freqfac > 0.0\n", argv[ARG_FREQFAC]); 
+			error++;
+			goto exit;
+		}
+		freqfacSize++;
+	}
+	rewind(fpfreqfac);	
+
+	if (ampfacSize != freqfacSize)
+	{
+		printf("Error: \"%s\" and \"%s\" must have\n"
+		       "       the same number of data values\n",
+		        argv[ARG_AMPFAC], argv[ARG_FREQFAC]);
+		error++;
+		goto exit;
+	}
+	noscs = ampfacSize;
+
 	/* allocate space for buffer */
-	nframes = NFRAMES;
+	nframes = DEFAULT_NFRAMES;
 	buffer = (float*) malloc (outprops.chans * sizeof(float) * nframes);
 	if (buffer == NULL)
 	{
@@ -291,6 +488,15 @@ main (int argc, char* argv[])
 		goto exit;
 	}	
 
+	/* create gtable arrays */
+	gtable = (GTABLE **) malloc (noscs * sizeof(GTABLE *));	
+	if (gtable == NULL)
+	{
+		printf("No memory!\n");
+		error++;
+		goto exit;
+	}
+
 	oscfreqs = (double*) malloc (noscs * sizeof(double));
 	if (oscfreqs == NULL)
 	{
@@ -300,7 +506,7 @@ main (int argc, char* argv[])
 	}
 
 	/* create array of pointers to OSCILs */
-	oscs = (OSCIL**) malloc (noscs * sizeof(OSCIL *));
+	oscs = (OSCILT**) malloc (noscs * sizeof(OSCILT *));
 	if (oscs == NULL)
 	{
 		puts("No memory!\n");
@@ -308,28 +514,57 @@ main (int argc, char* argv[])
 		goto exit;
 	}
 
-	/* amplitude and frequencies for four principal waveforms */
+	/* additive synthesis using five principle waveforms 
+	   create and initialize wave tables */
 	freqfac = 1.0;
 	ampadjust = 0.0;
 	switch (wavetype)
 	{
+		case (WAVE_SINE):
+			for (i=0; i < noscs; i++)
+			{
+				gtable[i] = new_sine(width);
+				if (gtable[i] == NULL)
+				{
+					printf("Error: unable to create sine wave table.\n");
+					error++;
+					goto exit;
+				}
+				ampfac = atof(fgets(line,40,fpampfac));
+				oscamps[i] = ampfac;
+				oscfreqs[i] = atof(fgets(line,40,fpfreqfac));
+				ampadjust += ampfac;
+			}
+			break;
 		case (WAVE_SQUARE):
 			for (i=0; i < noscs; i++)
 			{
-				ampfac = 1.0 / freqfac;
+				gtable[i] = new_square(width,nharms);
+				if (gtable[i] == NULL)
+				{
+					printf("Error: unable to create square wave table.\n");
+					error++;
+					goto exit;
+				}
+				ampfac = atof(fgets(line,40,fpampfac));
 				oscamps[i] = ampfac;
-				oscfreqs[i] = freqfac;
-				freqfac += 2.0;
+				oscfreqs[i] = atof(fgets(line,40,fpfreqfac));
 				ampadjust += ampfac;
 			}
 			break;
 		case (WAVE_TRIANGLE):
 			for (i=0; i < noscs; i++)
 			{
-				ampfac = 1.0 / (freqfac*freqfac);
+				gtable[i] = new_triangle(width,nharms);
+				if (gtable[i] == NULL)
+				{
+					printf("Error: unable to create triangle wave table.\n");
+					error++;
+					goto exit;
+				}
+				ampfac = atof(fgets(line,40,fpampfac));
 				oscamps[i] = ampfac;
-				oscfreqs[i] = freqfac;
-				freqfac += 2.0;
+				oscfreqs[i] = atof(fgets(line,40,fpfreqfac));
 				ampadjust += ampfac;
 			}
 			phase = 0.25; /* default phase for triangle */
@@ -338,15 +573,21 @@ main (int argc, char* argv[])
 		case (WAVE_SAWDOWN):
 			for (i=0; i < noscs; i++)
 			{
-				ampfac = 1.0 / freqfac;
+				if (wavetype == WAVE_SAWUP)
+					gtable[i] = new_saw(width,nharms,SAW_UP);
+		    else	
+					gtable[i] = new_saw(width,nharms,SAW_DOWN);
+				if (gtable[i] == NULL)
+				{
+					printf("Error: unable to create saw%s wave table.\n",
+					        (wavetype==WAVE_SAWUP)?"up":"down");
+					error++;
+					goto exit;
+				}
+				ampfac = atof(fgets(line,40,fpampfac));
 				oscamps[i] = ampfac;
-				oscfreqs[i] = freqfac;
-				freqfac += 1.0;
+				oscfreqs[i] = atof(fgets(line,40,fpfreqfac));
 				ampadjust += ampfac;
-			}
-			if (wavetype == WAVE_SAWUP)
-			{
-				ampadjust = -ampadjust;
 			}
 			break;
 	}
@@ -354,10 +595,10 @@ main (int argc, char* argv[])
 	for (i=0; i < noscs; i++)
 		oscamps[i] /= ampadjust;
 
-	/* create each OSCIL */
+	/* create and initialize each OSCILT */
 	for (i=0; i < noscs; i++)
 	{
-		oscs[i] = new_oscilp(outprops.srate,phase);
+		oscs[i] = new_oscilt(outprops.srate,gtable[i],phase);
 		if (oscs[i] == NULL)
 		{
 			puts("No memory for oscillators.\n");
@@ -365,6 +606,26 @@ main (int argc, char* argv[])
 			goto exit;
 		}
 	} 
+
+	/* if specified, create and initialize
+	   vibrato oscillator */
+	if (isvib)
+	{
+		vibtable = new_sine(width);	
+		if (vibtable == NULL)
+		{
+			printf("Error: unable to create vibrato wave table.\n");
+			error++;
+			goto exit;
+		}
+		vibosc = new_oscilt(outprops.srate,vibtable,phase);
+		if (vibosc == NULL)
+		{
+			puts("No memory for vibrato oscillator.\n");
+			error++;
+			goto exit;
+		}
+	}
 
 	printf("Creating soundfile...\n");
 
@@ -376,30 +637,37 @@ main (int argc, char* argv[])
 			nframes = remainder;
 		/* update copy status after refreshing the buffer every 100 times */
 		if ((i%100)==0)
-			printf("%lu frames copied...  %d%%\r", framesread, (int)(framesread/outframes));
+			printf("%lu frames copied...  %d%%\r", framesread, (int)(100*framesread/outframes));
 		/* clear update status when done */
 		if (i==(nbufs-1))
-			printf("                                                                   \r");
+			printf("                                                                       \r");
 		for (j=0; j < nframes; j++)
 		{
 			long k;
-			if (freqstream)
+			/* if breakpoints are used, get values from the breakpoint stream */
+			if (freqstream)  
 				freq = bps_tick(freqstream);
 			if (ampstream)
 				amp = bps_tick(ampstream);
 			val = 0.0;
+			/* add vibrato */
+			if (isvib) 
+				vibsig = vibfac*tickfunc(vibosc,vibfreq);	
+			/* add harmonic values from osc bank */
 			for (k=0; k < noscs; k++)
-				val += oscamps[k] * sinetick(oscs[k], freq*oscfreqs[k]);
+				val += oscamps[k] * tickfunc(oscs[k], freq*oscfreqs[k] * (1 + vibsig));
+			/* send values to buffer */
 			for (i_out=0; i_out < outprops.chans; i_out++)
 				buffer[j*outprops.chans + i_out] = (float)(val * amp);
-			framesread += nframes;
 		}
+		/* write values to soundfile */
 		if (psf_sndWriteFloatFrames(ofd, buffer, nframes) != nframes)
 		{
 			printf("Error writing to outfile.\n");
 			error++;
 			break;
 		}
+		framesread += nframes;
 	}
 
 	printf("Done. %d error%s\n"
@@ -421,13 +689,17 @@ main (int argc, char* argv[])
 		{
 			printf("Error: unable to close soundfile: %s\n",
 			        argv[ARG_OUTFILE]);
+			error++;
 		}
 		else if (error)
 		{
 			printf("There was an error while processing the soundfile.\n"
 			       "Deleting soundfile: %s\n", argv[ARG_OUTFILE]);
 			if (remove(argv[ARG_OUTFILE]))
+			{
 				printf("Error: unable to delete %s\n", argv[ARG_OUTFILE]);
+				error++;
+			}
 			else
 				printf("%s successfully deleted\n", argv[ARG_OUTFILE]);
 		}
@@ -440,11 +712,6 @@ main (int argc, char* argv[])
 	{
 		free(buffer);
 		buffer = NULL;
-	}
-	if (p_osc)
-	{
-		free(p_osc);
-		p_osc = NULL;
 	}
 	if (fpamp)
 	{
@@ -462,11 +729,33 @@ main (int argc, char* argv[])
 			        argv[ARG_AMP]);
 		}
 	}
+	if (fpampfac)
+	{
+		if (fclose(fpampfac))
+		{
+			printf("Error: unable to close data file: %s\n",
+			        argv[ARG_AMPFAC]);
+			error++;
+		}
+	}
+	if (fpfreqfac)
+	{
+		if (fclose(fpfreqfac))
+		{
+			printf("Error: unable to close data file: %s\n",
+			        argv[ARG_FREQFAC]); 
+		}
+		error++;
+	}
 	if (oscs)
 	{
 		free(oscs);
 		oscs = NULL;
 	}
+	if (gtable)
+		gtable_free(gtable);
+	if (vibtable)
+		gtable_free(&vibtable);
 	if (oscamps)
 	{
 		free(oscamps);
@@ -476,6 +765,11 @@ main (int argc, char* argv[])
 	{
 		free(oscfreqs);
 		oscfreqs = NULL;
+	}
+	if (vibosc)
+	{
+		free(vibosc);
+		vibosc == NULL;
 	}
 	psf_finish();
 
