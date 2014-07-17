@@ -1,5 +1,5 @@
 /* a basic oscillator bank for additive synthesis */
-/* USAGE: oscgen [-wN] [-t] outsndfile dur srate nchans amp freq wavetype nharms ampfac.dat freqfac.dat */
+/* USAGE: oscgen [-wN] [-t] [-v fac freq] outsndfile dur srate nchans amp freq wavetype nharms ampfac.dat freqfac.dat */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,6 +27,8 @@ main (int argc, char* argv[])
 	unsigned long width = DEFAULT_WIDTH; 
 	double minval, maxval, maxamp; /* gather min/max values in breakpoint files */
 	double ampfac, freqfac, ampadjust; /* oscillator bank values */
+	double vibsig=0.0, vibfac=0.0, vibfreq=0.0; /* sets vibrato */ 
+	int isvib = 0; /* flag for setting vibrato */
 	int chans, srate,
 	    noscs; /* number of oscillators in oscillator bank */
 	int wavetype = -1;
@@ -48,7 +50,9 @@ main (int argc, char* argv[])
 	BRKSTREAM* ampstream = NULL;
 	BRKSTREAM* freqstream = NULL;
 	OSCILT **oscs = NULL;
+	OSCILT *vibosc = NULL; /* oscillator for vibrato */
 	GTABLE** gtable = NULL;
+	GTABLE* vibtable = NULL; /* oscillator lookup table for vibrato */
 	double *oscamps = NULL,
 	       *oscfreqs = NULL;
 	unsigned long brkampSize = 0,
@@ -67,10 +71,13 @@ main (int argc, char* argv[])
 			{
 				case ('\0'):
 					printf("Error:   you did not specify an option.\n"
-					       "options: -wN  set width of lookup table "
+					       "options: -wN   | set width of lookup table "
 					       "to N points (default: 1024 points)\n"
-					       "         -t   use truncating lookup "
-					       "(default: interpolating lookup)\n");
+					       "         -t    | use truncating lookup "
+					       "(default: interpolating lookup)\n"
+					       "         -v fac freq   | include vibrato set at "
+					       "a specified factor and frequency\n",
+					        argv[1]);
 					return 1;
 				case('t'):
 					if (argv[1][2] == '\0')
@@ -78,12 +85,48 @@ main (int argc, char* argv[])
 					else
 					{
 						printf("Error:   %s is not a valid option.\n"
-						       "options: -wN  set width of lookup table "
+						       "options: -wN   | set width of lookup table "
 						       "to N points (default: 1024 points)\n"
-						       "         -t   use truncating lookup "
-						       "(default: interpolating lookup)\n",
+						       "         -t    | use truncating lookup "
+						       "(default: interpolating lookup)\n"
+						       "         -v fac freq   | include vibrato set at "
+						       "a specified factor and frequency\n",
 						        argv[1]);
 						return 1;
+					}
+					break;
+				case('v'):
+					if (argv[1][2] != '\0')
+					{
+						printf("Error:   %s is not a valid option.\n"
+						       "options: -wN   | set width of lookup table "
+						       "to N points (default: 1024 points)\n"
+						       "         -t    | use truncating lookup "
+						       "(default: interpolating lookup)\n"
+						       "         -v fac freq   | include vibrato set at "
+						       "a specified factor and frequency\n",
+						        argv[1]);
+						return 1;
+					}
+					if (argc > 3)
+					{
+						vibfac = atof(argv[2]);	
+						if (vibfac <= 0.0 || vibfac > 1.0)
+						{
+							printf("Error: vibrato factor out of range.\n"
+							       "       0.0 < fac <= 1.0\n");
+							return 1;
+						}	
+						vibfreq = atof(argv[3]);
+						if (vibfreq <= 0.0)
+						{
+							printf("Error: vibrato frequency out of range.\n"
+							       "       freq > 0.0\n");
+							return 1;
+						}
+						isvib = 1;
+						argc -= 2;
+						argv += 2;
 					}
 					break;
 				case('w'):
@@ -104,10 +147,12 @@ main (int argc, char* argv[])
 					}
 				default:
 					printf("Error:   %s is not a valid option.\n"
-					       "options: -wN  set width of lookup table "
+					       "options: -wN   | set width of lookup table "
 					       "to N points (default: 1024 points)\n"
-					       "         -t   use truncating lookup "
-					       "(default: interpolating lookup)\n",
+					       "         -t    | use truncating lookup "
+					       "(default: interpolating lookup)\n"
+					       "         -v fac freq   | include vibrato set at "
+					       "a specified factor and frequency\n",
 					        argv[1]);
 					return 1;
 			}
@@ -121,11 +166,16 @@ main (int argc, char* argv[])
 	{
 		printf("ERROR: insufficient number of arguments.\n\n"
 
-		       "USAGE: [-wN] [-t] oscgen outsndfile dur srate nchans amp freq wavetype nharms ampfac.dat freqfac.dat\n"
-		       "------------------------------------------------------------------------\n"
+		       "USAGE: oscgen [-wN] [-t] [-v fac freq] outsndfile dur srate nchans amp freq wavetype nharms ampfac.dat freqfac.dat\n"
+		       "------------------------------------------------------------------------------------------------------------------\n"
 		       "options:     -wN  set width of lookup table to N points (default: 1024 points)\n"
 		       "                  (N >= 1)\n"
 		       "             -t   use truncating lookup (default: interpolating lookup)\n"
+		       "             -v   adds vibrato to the main oscillator\n"
+		       "                  fac:  vibrato factor affects the amount of vibrato\n"
+		       "                        (0.0 < fac <= 1.0)\n"
+		       "                  freq: frequency of vibrato\n" 
+		       "                        (freq > 0.0)\n"
 		       "outsndfile:  output soundfile supported by portsf\n"
 		       "             use any of .wav .aiff .aif .afc .aifc formats\n" 
 		       "dur:         duration of soundfile (seconds)\n"
@@ -464,7 +514,7 @@ main (int argc, char* argv[])
 		goto exit;
 	}
 
-	/* additive synthesis using four principle waveforms 
+	/* additive synthesis using five principle waveforms 
 	   create and initialize wave tables */
 	freqfac = 1.0;
 	ampadjust = 0.0;
@@ -557,6 +607,26 @@ main (int argc, char* argv[])
 		}
 	} 
 
+	/* if specified, create and initialize
+	   vibrato oscillator */
+	if (isvib)
+	{
+		vibtable = new_sine(width);	
+		if (vibtable == NULL)
+		{
+			printf("Error: unable to create vibrato wave table.\n");
+			error++;
+			goto exit;
+		}
+		vibosc = new_oscilt(outprops.srate,vibtable,phase);
+		if (vibosc == NULL)
+		{
+			puts("No memory for vibrato oscillator.\n");
+			error++;
+			goto exit;
+		}
+	}
+
 	printf("Creating soundfile...\n");
 
 	/* process soundfile */
@@ -579,8 +649,10 @@ main (int argc, char* argv[])
 			if (ampstream)
 				amp = bps_tick(ampstream);
 			val = 0.0;
+			if (isvib) /* add vibrato */
+				vibsig = vibfac*tickfunc(vibosc,vibfreq);	
 			for (k=0; k < noscs; k++)
-				val += oscamps[k] * tickfunc(oscs[k], freq*oscfreqs[k]);
+				val += oscamps[k] * tickfunc(oscs[k], freq*oscfreqs[k] * (1 + vibsig));
 			for (i_out=0; i_out < outprops.chans; i_out++)
 				buffer[j*outprops.chans + i_out] = (float)(val * amp);
 		}
@@ -677,6 +749,8 @@ main (int argc, char* argv[])
 	}
 	if (gtable)
 		gtable_free(gtable);
+	if (vibtable)
+		gtable_free(&vibtable);
 	if (oscamps)
 	{
 		free(oscamps);
@@ -686,6 +760,11 @@ main (int argc, char* argv[])
 	{
 		free(oscfreqs);
 		oscfreqs = NULL;
+	}
+	if (vibosc)
+	{
+		free(vibosc);
+		vibosc == NULL;
 	}
 	psf_finish();
 
