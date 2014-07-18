@@ -192,6 +192,33 @@ GTABLE* new_saw(unsigned long length, unsigned long nharms, int up)
 	return gtable;
 }
 
+/* fills table with pulse wave */
+GTABLE* new_pulse(unsigned long length, unsigned long nharms)
+{
+	unsigned long i, j;
+	double step, val, amp = 1.0;
+	GTABLE* gtable;
+	int harmonic = 1;
+
+	if (length == 0 || nharms == 0 || nharms >= length/2)
+		return NULL;
+	gtable = new_gtable(length);
+	if (gtable == NULL)
+		return NULL;
+	step = TWOPI/length;
+	/* generate pulse wave */
+	val = amp/nharms;
+	for (i=0; i < nharms; i++)
+	{
+		for (j=0; j < gtable->length; j++)
+			gtable->table[j] += val * sin(step * harmonic * j);
+		harmonic++;
+	}
+	/* normalize table */
+	norm_gtable(gtable);
+	return gtable;
+}
+
 /* creates a fully allocate but empty table */
 GTABLE* new_gtable(unsigned long length)
 {
