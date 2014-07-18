@@ -2,6 +2,7 @@
 /* usage: siggen [-sN] [-oN] outsndfile wavetype [pwval] duration srate nchans amp freq */ 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <portsf.h>
 #include <wave.h>
 #include <breakpoints.h>
@@ -11,8 +12,8 @@ enum {ARG_PROGNAME, ARG_OUTFILE, ARG_TYPE,
       ARG_PWMOD, ARG_DUR=3, ARG_SRATE, ARG_NCHANS, 
       ARG_AMP, ARG_FREQ, ARG_NARGS};
 
-enum {WAVE_SINE, WAVE_TRIANGLE, WAVE_SQUARE,
-      WAVE_PWMOD, WAVE_SAWUP, WAVE_SAWDOWN, WAVE_NTYPES};
+enum {WAVE_SINE=4, WAVE_PWMOD, WAVE_SQUARE, WAVE_TRIANGLE=8,
+      WAVE_SAWUP=11, WAVE_SAWDOWN=13};
 
 int main (int argc, char**argv)
 {
@@ -138,10 +139,18 @@ int main (int argc, char**argv)
 					return 1;
 				}
 				pwval = atof(argv[ARG_PWMOD]);
+				if (pwval < 1 || pwval > 99)
+				{
+					printf("Error: pwval is out of range.\n"
+					       "       1 <= pwval <= 99\n");
+					return 1;
+				}
+				/* we have gathered a pwval value */
 				ispwval=1;
 			}
 			else
 		  {
+				/* breakpoint file exists, gather breakpoint values */
 				pwmodstream = bps_newstream(fppwmod,atof(argv[ARG_SRATE+1]),&brkpwmodSize);
 				if (pwmodstream==NULL)
 				{
@@ -225,47 +234,28 @@ int main (int argc, char**argv)
 	while (argv[ARG_TYPE][count]!='\0') count++;
 	switch (count)
 	{
-		case(4):
-			if ( (argv[ARG_TYPE][0]=='s')&&(argv[ARG_TYPE][1]=='i'&&
-					 (argv[ARG_TYPE][2]=='n')&& argv[ARG_TYPE][3]=='e')  ) 
+		case(WAVE_SINE):
+			if (!strcmp(argv[ARG_TYPE],"sine")) 
 				wavetype = WAVE_SINE;
 			break;
-		case(5):
-			if ( (argv[ARG_TYPE][0]=='p')&&(argv[ARG_TYPE][1]=='w')&&
-			     (argv[ARG_TYPE][2]=='m')&&(argv[ARG_TYPE][3]=='o')&&
-			     (argv[ARG_TYPE][4]=='d')                             )
+		case(WAVE_PWMOD):
+			if (!strcmp(argv[ARG_TYPE],"pwmod"))
 				wavetype = WAVE_PWMOD;
 			break;
-		case(6):
-			if ( (argv[ARG_TYPE][0]=='s')&&(argv[ARG_TYPE][1]=='q')&&
-			     (argv[ARG_TYPE][2]=='u')&&(argv[ARG_TYPE][3]=='a')&&
-			     (argv[ARG_TYPE][4]=='r')&&(argv[ARG_TYPE][5]=='e')   )
+		case(WAVE_SQUARE):
+			if (!strcmp(argv[ARG_TYPE],"square"))
 				wavetype = WAVE_SQUARE;
 			break;
-		case(8):
-			if ( (argv[ARG_TYPE][0]=='t')&&(argv[ARG_TYPE][1]=='r')&&
-			     (argv[ARG_TYPE][2]=='i')&&(argv[ARG_TYPE][3]=='a')&&
-			     (argv[ARG_TYPE][4]=='n')&&(argv[ARG_TYPE][5]=='g')&&
-			     (argv[ARG_TYPE][6]=='l')&&(argv[ARG_TYPE][7]=='e')   )
+		case(WAVE_TRIANGLE):
+			if (!strcmp(argv[ARG_TYPE],"triangle"))
 				wavetype = WAVE_TRIANGLE;
 			break;
-		case(11):
-			if ( (argv[ARG_TYPE][0]=='s')&&(argv[ARG_TYPE][1]=='a')&&
-			     (argv[ARG_TYPE][2]=='w')&&(argv[ARG_TYPE][3]=='t')&&
-			     (argv[ARG_TYPE][4]=='o')&&(argv[ARG_TYPE][5]=='o')&&
-			     (argv[ARG_TYPE][6]=='t')&&(argv[ARG_TYPE][7]=='h')&&
-			     (argv[ARG_TYPE][8]=='_')&&(argv[ARG_TYPE][9]=='u')&&
-			     (argv[ARG_TYPE][10]=='p')                            )
+		case(WAVE_SAWUP):
+			if (!strcmp(argv[ARG_TYPE],"sawtooth_up"))
 				wavetype = WAVE_SAWUP;
 			break;
-		case(13):
-			if ( (argv[ARG_TYPE][0]=='s')&&(argv[ARG_TYPE][1]=='a')&&
-			     (argv[ARG_TYPE][2]=='w')&&(argv[ARG_TYPE][3]=='t')&&
-			     (argv[ARG_TYPE][4]=='o')&&(argv[ARG_TYPE][5]=='o')&&
-			     (argv[ARG_TYPE][6]=='t')&&(argv[ARG_TYPE][7]=='h')&&
-			     (argv[ARG_TYPE][8]=='_')&&(argv[ARG_TYPE][9]=='d')&&
-			     (argv[ARG_TYPE][10]=='o')&&(argv[ARG_TYPE][11]=='w')&&
-			     (argv[ARG_TYPE][12]=='n')                              )
+		case(WAVE_SAWDOWN):
+			if (!strcmp(argv[ARG_TYPE],"sawtooth_down"))
 				wavetype = WAVE_SAWDOWN;
 			break;	
 		default:
@@ -477,7 +467,7 @@ int main (int argc, char**argv)
 		peakdiff = amp-psf_sndPeakValue(ofd,&outprops);
 	else
 		peakdiff = maxval-psf_sndPeakValue(ofd,&outprops);
-	if ((peakdiff>.0001) || (peakdiff<-.0001))
+	if ((peakdiff>.001) || (peakdiff<-.001))
 	{
 		printf("ERROR: unable to generate the correct peak\n"
 		       "       amplitude for %s\n", argv[ARG_OUTFILE]); 	
