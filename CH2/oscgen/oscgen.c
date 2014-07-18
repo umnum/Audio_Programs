@@ -185,7 +185,7 @@ main (int argc, char* argv[])
 		       "             (0.0 < amp <= 1.0)\n"
 		       "freq:        frequency value or breakpoint file\n"
 		       "             (frequency >= 0.0)\n"	
-		       "wavetype:    square, triangle, sawtooth_up, sawtooth_down\n"
+		       "wavetype:    sine, square, triangle, sawup, sawdown\n"
 		       "nhamrs:      number of wavetype harmonics\n"
 		       "ampfac.dat:  amplitude factor data file\n"
 		       "             accepts a list of harmonic amplitude data\n"
@@ -253,7 +253,7 @@ main (int argc, char* argv[])
 			if (!strcmp(argv[ARG_TYPE],"sawup"))
 				wavetype = WAVE_SAWUP;
 			break;
-		case(13):
+		case(WAVE_SAWDOWN):
 			if (!strcmp(argv[ARG_TYPE],"sawdown"))
 				wavetype = WAVE_SAWDOWN;
 			break;
@@ -263,7 +263,7 @@ main (int argc, char* argv[])
 	if (wavetype < 0)
 	{
 		printf("ERROR:    %s is not a valid wavetype.\n"
-		       "wavetype: square, triangle, sawup, sawdown\n",
+		       "wavetype: sine, square, triangle, sawup, sawdown\n",
 		        argv[ARG_TYPE]); 
 		return 1;
 	}
@@ -488,19 +488,19 @@ main (int argc, char* argv[])
 		goto exit;
 	}	
 
+	oscfreqs = (double*) malloc (noscs * sizeof(double));
+	if (oscfreqs == NULL)
+	{
+		puts("No memory!\n");
+		error++;
+		goto exit;
+	}
+
 	/* create gtable arrays */
 	gtable = (GTABLE **) malloc (noscs * sizeof(GTABLE *));	
 	if (gtable == NULL)
 	{
 		printf("No memory!\n");
-		error++;
-		goto exit;
-	}
-
-	oscfreqs = (double*) malloc (noscs * sizeof(double));
-	if (oscfreqs == NULL)
-	{
-		puts("No memory!\n");
 		error++;
 		goto exit;
 	}
