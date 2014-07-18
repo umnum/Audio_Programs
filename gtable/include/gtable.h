@@ -51,5 +51,8 @@ GTABLE* new_square(unsigned long length, unsigned long nharms);
 /* fills table with saw up/down wave */
 GTABLE* new_saw(unsigned long length, unsigned long nharms, int up);
 
+/* fills table with pulse wave */
+GTABLE* new_pulse(unsigned long length, unsigned long nharms);
+
 /* creates a fully allocate but empty table */
 GTABLE* new_gtable(unsigned long length);

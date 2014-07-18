@@ -3,21 +3,46 @@
 #include <wave.h>
 #include <math.h>
 
+
+/** static oscil function declarations **/
+
+
+/* oscil creation function */
+static OSCIL* oscil_create();
+
+/* oscil initialization function */
+static void oscil_init(OSCIL* p_osc, unsigned long srate);
+
+
 /** wave oscil function definitions **/
 
 
-/* a combined OSCIL creation and initialization function */ 
-OSCIL* new_oscil(unsigned long srate)
+/* oscil creation, returns NULL if no oscil was created */
+static OSCIL* oscil_create()
 {
-	OSCIL* p_osc;	
-
+	OSCIL* p_osc;
 	p_osc = (OSCIL*)malloc(sizeof(OSCIL));
-	if (p_osc==NULL)
-		return NULL;
+	return p_osc;
+}
+
+/* oscil initialization */
+static void oscil_init(OSCIL* p_osc, unsigned long srate)
+{
 	p_osc->twopiovrsr = TWOPI / (double) srate;
 	p_osc->curfreq = 0.0;
 	p_osc->curphase = 0.0;
 	p_osc->incr = 0.0;
+}
+
+/* a combined OSCIL creation and initialization function */ 
+OSCIL* new_oscil(unsigned long srate)
+{
+	OSCIL* p_osc = oscil_create();	
+
+	if (p_osc==NULL)
+		return NULL;
+
+	oscil_init(p_osc, srate);
 
 	return p_osc;
 }
@@ -27,12 +52,13 @@ OSCIL* new_oscil(unsigned long srate)
    sets initial phase of the oscillator */
 OSCIL* new_oscilp(unsigned long srate, double phase)
 {
-	OSCIL* p_osc;	
-	p_osc = (OSCIL*)malloc(sizeof(OSCIL));
+	OSCIL* p_osc = oscil_create();	
+	
 	if (p_osc==NULL)
 		return NULL;
-	p_osc->twopiovrsr = TWOPI / (double) srate;
-	p_osc->curfreq = 0.0;
+
+	oscil_init(p_osc, srate);
+
 	/* make sure the inputted phase doesn't exceed the range 
 	   by taking the fractional part of the phase value */ 
 	if (phase > 1.0)
@@ -41,7 +67,6 @@ OSCIL* new_oscilp(unsigned long srate, double phase)
 		phase = (phase + (int)phase) * -1.0;
 	/* phase offset is from 0 to 2*PI */
 	p_osc->curphase = TWOPI*phase;
-	p_osc->incr = 0.0;
 
 	return p_osc;
 } 
