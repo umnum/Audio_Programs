@@ -13,7 +13,7 @@
 enum {ARG_PROGNAME, ARG_OUTFILE, ARG_DUR, ARG_SR, ARG_CHANS,
       ARG_AMP, ARG_FREQ, ARG_TYPE, ARG_NHARMS, ARG_NARGS};
 
-enum {WAVE_SINE=4, WAVE_SAWUP, WAVE_SQUARE, WAVE_SAWDOWN, WAVE_TRIANGLE};
+enum {WAVE_SINE=4, WAVE_SAWUP, WAVE_PULSE=5, WAVE_SQUARE, WAVE_SAWDOWN, WAVE_TRIANGLE};
 
 int main (int argc, char**argv)
 {
@@ -125,7 +125,7 @@ int main (int argc, char**argv)
 		       "       freq:     frequency value or breakpoint file\n"
 		       "                 freq >= 0.0\n"
 		       "       type:     oscillator wave type\n"
-		       "                 sine, square, triangle, sawup, sawdown\n"
+		       "                 sine, square, triangle, sawup, sawdown, pulse\n"
 		       "       nharms:   number of wave harmonics that are\n"
 		       "                 added together in oscillator bank\n" 
 		       "                 nharms >= 1\n"
@@ -188,9 +188,12 @@ int main (int argc, char**argv)
 			if (!strcmp(argv[ARG_TYPE],"sine"))
 				wavetype = WAVE_SINE;
 			break;
-		case (WAVE_SAWUP):
+		case (WAVE_SAWUP): 
 			if (!strcmp(argv[ARG_TYPE],"sawup"))
 				wavetype = WAVE_SAWUP;
+		/* case (WAVE_PULSE): */
+			if (!strcmp(argv[ARG_TYPE],"pulse"))
+				wavetype = WAVE_PULSE;
 			break;
 		case (WAVE_SQUARE):
 			if (!strcmp(argv[ARG_TYPE],"square"))
@@ -210,7 +213,7 @@ int main (int argc, char**argv)
 	if (wavetype < 0) 
 	{
 		printf("Error:    %s is not a valid wave type.\n"
-		       "wavetype: sine, square, triangle, sawup, sawdown\n",
+		       "wavetype: sine, square, triangle, sawup, sawdown, pulse\n",
 		        argv[ARG_TYPE]); 
 		return 1;
 	}
@@ -388,6 +391,18 @@ int main (int argc, char**argv)
 			p_osc = new_oscilt(outprops.srate,gtable,0.25); 
 			break;
 		case (WAVE_SAWUP):
+		if (!strcmp(argv[ARG_TYPE],"pulse")) /* case (WAVE_PULSE): */
+		{
+			gtable = new_pulse(width,nharms);
+			if (gtable == NULL)
+			{
+				printf("Error: unable to create a pulse wave table.\n");
+				error++;
+				goto exit;
+			}
+			p_osc = new_oscilt(outprops.srate,gtable,0);
+			break;
+		}
 		case (WAVE_SAWDOWN):
 			if (wavetype==WAVE_SAWUP)
 				gtable = new_saw(width,nharms,SAW_UP);

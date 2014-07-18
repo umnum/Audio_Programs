@@ -211,7 +211,7 @@ GTABLE* new_pulse(unsigned long length, unsigned long nharms)
 	for (i=0; i < nharms; i++)
 	{
 		for (j=0; j < gtable->length; j++)
-			gtable->table[j] += val * sin(step * harmonic * j);
+			gtable->table[j] += val * cos(step * harmonic * j);
 		harmonic++;
 	}
 	/* normalize table */
