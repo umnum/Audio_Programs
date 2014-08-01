@@ -29,4 +29,4 @@ install: libtinyAudioLib.a
 
 tinyAudioLib.o: tinyAudioLib.c 
 	sudo cp $(LIB) /usr/include
-	$(CC) $(CFLAGS) tinyAudioLib.c
+	$(CC) $(CFLAGS) tinyAudioLib.c -I../portaudio/include 
