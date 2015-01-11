@@ -13,3 +13,4 @@ In addition, a few libraries have been created or modified to accompany the prog
 * **gtable** - generates table lookup values for several waveforms 
 * **portsf** - soundfile I/O library from the audio programming book 
 * **wave** - waveform generators 
+* **breakpoints** - generate breakpoints for waveform modulation 
