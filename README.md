@@ -1,7 +1,7 @@
 # Audio Programs 
 
-The audio programming excersices from [The Audio Programming Book](http://mitpress.mit.edu/books/audio-programming-book) covers basic audio signal processing techniques and its 
-purpose is to develop my own personal understanding of digital signal processing.
+The audio programming excersices from [The Audio Programming Book](http://mitpress.mit.edu/books/audio-programming-book) covers basic audio signal processing techniques.
+The purpose of these excersices is to develop my own personal understanding of digital signal processing.
 
 The audio exercises covers 2 chapters of the book: 
 
